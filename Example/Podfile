@@ -1,7 +1,7 @@
 use_frameworks!
 
 target 'HLAppMonitor_Example' do
-  pod 'HLAppMonitor', :path => '../'
+  pod 'HLAppMonitor', :path => '../HLAppMonitor.podspec'
 
   target 'HLAppMonitor_Tests' do
     inherit! :search_paths
