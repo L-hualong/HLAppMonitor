@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'HLAppMonitor_Example' do
+  pod 'HLAppMonitor', :path => '../'
+
+  target 'HLAppMonitor_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
