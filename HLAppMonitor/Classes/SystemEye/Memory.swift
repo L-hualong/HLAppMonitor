@@ -20,8 +20,7 @@ open class Memory: NSObject {
     //--------------------------------------------------------------------------
     
     /// Memory usage of application
-    open class func applicationUsage() -> (used: Double,
-                                          total: Double) {
+    open class func applicationUsage() -> Array<Double> {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout.size(ofValue: info) / MemoryLayout<integer_t>.size)
         let kerr = withUnsafeMutablePointer(to: &info) {
@@ -31,19 +30,14 @@ open class Memory: NSObject {
             }
         }
         guard kerr == KERN_SUCCESS else {
-            return (0,self.totalBytes)
+            return [0,self.totalBytes]
         }
         
-        return (Double(info.resident_size),self.totalBytes)
+        return [Double(info.resident_size),self.totalBytes]
     }
     
     /// Memory usage of system
-    open class func systemUsage() -> (free: Double,
-                                    active: Double,
-                                  inactive: Double,
-                                     wired: Double,
-                                compressed: Double,
-                                     total: Double) {
+    open class func systemUsage() -> Array<Double> {
         let statistics = self.VMStatistics64()
         
         
@@ -53,7 +47,7 @@ open class Memory: NSObject {
         let wired = Double(statistics.wire_count) * PAGE_SIZE
         let compressed = Double(statistics.compressor_page_count) * PAGE_SIZE
         
-        return (free,active,inactive,wired,compressed,self.totalBytes)
+        return [free,active,inactive,wired,compressed,self.totalBytes]
     }
     
     //--------------------------------------------------------------------------

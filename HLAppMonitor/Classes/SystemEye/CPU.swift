@@ -39,10 +39,7 @@ open class CPU: NSObject {
     
     ///  Get CPU usage of hole system (system, user, idle, nice). Determined by the delta between
     ///  the current and last call.
-    open static func systemUsage() -> (system: Double,
-                                         user: Double,
-                                         idle: Double,
-                                         nice: Double) {
+    open static func systemUsage() -> Array<Double> {
         let load = self.hostCPULoadInfo
         
         let userDiff = Double(load.cpu_ticks.0 - loadPrevious.cpu_ticks.0)
@@ -59,7 +56,7 @@ open class CPU: NSObject {
         
         loadPrevious = load
         
-        return (sys, user, idle, nice)
+        return [sys, user, idle, nice]
     }
     
     

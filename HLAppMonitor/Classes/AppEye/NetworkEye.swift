@@ -8,7 +8,7 @@
 
 import Foundation
 
-public protocol NetworkEyeDelegate: NSObjectProtocol {
+@objc public protocol NetworkEyeDelegate: NSObjectProtocol {
     func networkEyeDidCatch(with request:URLRequest?,response:URLResponse?,data:Data?)
 }
 

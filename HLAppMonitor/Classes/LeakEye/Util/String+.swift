@@ -29,4 +29,10 @@ extension String {
         return self[leftRange.upperBound..<rightRange.lowerBound]
         
     }
+    
+    func date(with dateFormat:String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = dateFormat
+        return formatter.date(from: self)
+    }
 }
