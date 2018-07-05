@@ -77,17 +77,17 @@ static NSString * td_resource_monitor_callback_key;
     if (td_resource_monitor_callback_key != nil) { return; }
     td_resource_monitor_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
         double cpuUsage, memoryUsage;
-        if (_appCpu) {
-            cpuUsage = [_appCpu currentUsage];
+        if (self->_appCpu) {
+            cpuUsage = [self->_appCpu currentUsage];
         } else {
-            TDSystemCPUUsage usage = [_sysCpu currentUsage];
+            TDSystemCPUUsage usage = [self->_sysCpu currentUsage];
             cpuUsage = usage.user + usage.system + usage.nice;
         }
-        if (_appMemory) {
-            TDApplicationMemoryUsage usage = [_appMemory currentUsage];
+        if (self->_appMemory) {
+            TDApplicationMemoryUsage usage = [self->_appMemory currentUsage];
             memoryUsage = usage.usage;
         } else {
-            TDSystemMemoryUsage usage = [_sysMemory currentUsage];
+            TDSystemMemoryUsage usage = [self->_sysMemory currentUsage];
             memoryUsage = (usage.wired + usage.active);
         }
         [self.cpuDisplayer displayCPUUsage: cpuUsage];
