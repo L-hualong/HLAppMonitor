@@ -77,10 +77,10 @@ static NSTimeInterval renderStartTime = 0;
             ((void(*)(id,SEL, id,id))objc_msgSend)(viewController, swizzledSelector, nil, nil);  
         }
         NSTimeInterval end = [self currentTime];
-        NSTimeInterval cast = end - start;
-        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
+//        NSTimeInterval cast = end - start;
+//        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
         NSLog(@"swizzled loadView Start %@ %f %@",viewController.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%f",start] withEndTime:[NSString stringWithFormat:@"%f",end] withHookMethod:@"loadView"];
+        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%.1f",start] withEndTime:[NSString stringWithFormat:@"%.1f",end] withHookMethod:@"loadView"];
     };
     [self replaceImplementationOfKnownSelector:selector onClass:class withBlock:swizzledBlock swizzledSelector:swizzledSelector];
 }
@@ -104,7 +104,7 @@ static NSTimeInterval renderStartTime = 0;
         NSString *att1 = [NSString stringWithFormat:@"%@=%f",viewController.class,cast];
         //viewdidLoad加载时间
         [[TDLoadingTimeMonitor sharedInstance] updateData:att1];
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%f",start] withEndTime:[NSString stringWithFormat:@"%f",end] withHookMethod:@"viewDidLoad"];
+        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%.1f",start] withEndTime:[NSString stringWithFormat:@"%.1f",end] withHookMethod:@"viewDidLoad"];
     };
     [self replaceImplementationOfKnownSelector:selector onClass:class withBlock:swizzledBlock swizzledSelector:swizzledSelector];
 }
@@ -135,10 +135,10 @@ static NSTimeInterval renderStartTime = 0;
         NSTimeInterval renderTime = end - renderStartTime;
         NSString* renderStr = [[TDPerformanceDataManager sharedInstance] getRenderWithClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withRenderTime:[NSString stringWithFormat:@"%f",renderTime]];
         [[TDPerformanceDataManager sharedInstance] normalDataStrAppendwith:renderStr];
-        NSTimeInterval cast = end - start;
-        NSLog(@"swizzled viewDidAppearStart %@ %f %@",vc.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
-        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%f",start] withEndTime:[NSString stringWithFormat:@"%f",end] withHookMethod:@"viewDidAppear"];
+//        NSTimeInterval cast = end - start;
+//        NSLog(@"swizzled viewDidAppearStart %@ %f %@",vc.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
+//        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
+        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%.1f",start] withEndTime:[NSString stringWithFormat:@"%.1f",end] withHookMethod:@"viewDidAppear"];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }
@@ -167,7 +167,7 @@ static NSTimeInterval renderStartTime = 0;
         NSTimeInterval cast = end - start;
         NSLog(@"swizzled viewDidDisappear %@ %f %@",vc.class,cast,[[NSString alloc]initWithUTF8String:class_getName(class)]);
 //        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",end],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%f",start] withEndTime:[NSString stringWithFormat:@"%f",end] withHookMethod:@"viewDidDisappear"];
+        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withStartTime:[NSString stringWithFormat:@"%.1f",start] withEndTime:[NSString stringWithFormat:@"%.1f",end] withHookMethod:@"viewDidDisappear"];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }

@@ -13,9 +13,10 @@
 #import "TDPerformanceMonitor.h"
 #import "TDFPSMonitor.h"
 #import <HLAppMonitor/HLAppMonitor-Swift.h>
-@interface TDPerformanceDataManager () <NetworkEyeDelegate,LeakEyeDelegate>
+@interface TDPerformanceDataManager () <NetworkEyeDelegate,LeakEyeDelegate,CrashEyeDelegate,ANREyeDelegate>
 {
     LeakEye *leakEye;
+    ANREye *anrEye;
 }
 
 @end
@@ -72,6 +73,12 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     self->leakEye = [[LeakEye alloc] init];
     self->leakEye.delegate = self;
     [self->leakEye open];
+    //开启奔溃检测
+    [CrashEye addWithDelegate:self];
+    //开启anrEye
+    self->anrEye = [[ANREye alloc] init];
+    self->anrEye.delegate = self
+    [self->anrEye openWith:1];
 
     if (td_resource_monitorData_callback_key != nil) {return;}
     
@@ -320,8 +327,18 @@ static NSString * td_resource_monitorData_callback_key;
         [att appendFormat:@"%@",@"\n"];
     }
     [self normalDataStrAppendwith:att];
-    NSData *normalData = [self.normalDataStr dataUsingEncoding:NSUTF8StringEncoding];
-    [self writeToFileWith:normalData];
+}
+
+//检测到crash
+- (void)crashEyeDidCatchCrashWith:(CrashModel *)model
+{
+    
+}
+
+//检测到卡顿
+- (void)anrEyeWithAnrEye:(ANREye *)anrEye catchWithThreshold:(double)threshold mainThreadBacktrace:(NSString *)mainThreadBacktrace allThreadBacktrace:(NSString *)allThreadBacktrace
+{
+    
 }
 
 

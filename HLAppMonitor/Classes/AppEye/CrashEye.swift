@@ -11,7 +11,7 @@ import Foundation
 //--------------------------------------------------------------------------
 // MARK: - CrashEyeDelegate
 //--------------------------------------------------------------------------
-public protocol CrashEyeDelegate: NSObjectProtocol {
+@objc public protocol CrashEyeDelegate: NSObjectProtocol {
     func crashEyeDidCatchCrash(with model:CrashModel)
 }
 
