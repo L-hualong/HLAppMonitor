@@ -14,13 +14,17 @@
 @property(nonatomic,assign)BOOL isStartCasch;
 
 //计数
-@property(nonatomic,assign)NSInteger logNum;
+//@property(nonatomic,assign)NSInteger logNum;
 
 @property(nonatomic,strong)NSMutableString *normalDataStr;
-//控制器停留数据
-@property(nonatomic,strong)NSMutableArray *pageDataArray;
 
 + (instancetype)sharedInstance;
+
+- (void)normalDataStrAppendwith:(NSString*)str;
+
+- (NSString *)getRenderWithClassName:(NSString *)className withRenderTime:(NSString *)renderTime;
+
+- (void)writeToFileWith:(NSData *)data;
 
 //异步获取数据,生命周期方法名
 - (void)syncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod;
