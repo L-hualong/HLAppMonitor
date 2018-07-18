@@ -40,13 +40,13 @@ public enum CrashModelType:Int {
 //--------------------------------------------------------------------------
 open class CrashModel: NSObject {
     
-    open var type: CrashModelType!
+    open var type: String!
     open var name: String!
     open var reason: String!
     open var appinfo: String!
     open var callStack: String!
     
-    init(type:CrashModelType,
+    init(type:String,
          name:String,
          reason:String,
          appinfo:String,
@@ -162,7 +162,7 @@ public class CrashEye: NSObject {
         let appinfo = CrashEye.appInfo()
         
         
-        let model = CrashModel(type:CrashModelType.exception,
+        let model = CrashModel(type:"exception",
                                name:name.rawValue,
                                reason:reason,
                                appinfo:appinfo,
@@ -185,7 +185,7 @@ public class CrashEye: NSObject {
         let reason = "Signal \(CrashEye.name(of: signal))(\(signal)) was raised.\n"
         let appinfo = CrashEye.appInfo()
         
-        let model = CrashModel(type:CrashModelType.signal,
+        let model = CrashModel(type:"signal",
                                name:CrashEye.name(of: signal),
                                reason:reason,
                                appinfo:appinfo,

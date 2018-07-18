@@ -17,11 +17,13 @@
 {
     LeakEye *leakEye;
     ANREye *anrEye;
+
 }
 
 @end
 
 static NSInteger logNum = 1;
+static NSInteger fileNum = 1;
 
 @implementation TDPerformanceDataManager
 
@@ -63,6 +65,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
  @param intervaTime 时间间隔
  */
 - (void)recordDataIntervalTime: (NSInteger)intervaTime {
+    //开启fps监控
+    [[TDFPSMonitor sharedMonitor]startMonitoring];
     self.isStartCasch = YES;
     [self clearTxt];
     //第一次先记录APP基础信息
@@ -77,7 +81,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     [CrashEye addWithDelegate:self];
     //开启anrEye
     self->anrEye = [[ANREye alloc] init];
-    self->anrEye.delegate = self
+    self->anrEye.delegate = self;
     [self->anrEye openWith:1];
 
     if (td_resource_monitorData_callback_key != nil) {return;}
@@ -105,6 +109,10 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 - (void)writeToFileWith:(NSData *)data {
     NSString * filePath = [self createFilePath];
     NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLog.txt"];
+    if (fileNum == 1) {
+        fileNum += 1;
+        [[NSData new] writeToFile:fileDicPath atomically:YES];
+    }
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     //找到并定位到outFile的末尾位置(在此后追加文件)
@@ -332,13 +340,53 @@ static NSString * td_resource_monitorData_callback_key;
 //检测到crash
 - (void)crashEyeDidCatchCrashWith:(CrashModel *)model
 {
+    NSString *str = [self getCrashInfoWithModel:model];
+    [self normalDataStrAppendwith:str];
+}
+
+//app的crash数据
+- (NSString *)getCrashInfoWithModel:(CrashModel *)model {
+    
+    NSString *type = model.type;
+    NSString *name = model.name;
+    NSString *reason = model.reason;
+    NSString *appinfo = model.appinfo;
+    NSString *callStack = model.callStack;
+    
+    NSTimeInterval curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%.1f",curt];
+    NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^CrashCollect", logNum,currntTime];
+    @synchronized (self) {
+        [self logNumAddOne];
+        [att appendFormat:@"^%@",type];
+        [att appendFormat:@"^%@",name];
+        [att appendFormat:@"^%@",reason];
+        [att appendFormat:@"^%@",appinfo];
+        [att appendFormat:@"^%@",callStack];
+        [att appendFormat:@"%@",@"\n"];
+    }
+    return att.copy;
     
 }
 
 //检测到卡顿
 - (void)anrEyeWithAnrEye:(ANREye *)anrEye catchWithThreshold:(double)threshold mainThreadBacktrace:(NSString *)mainThreadBacktrace allThreadBacktrace:(NSString *)allThreadBacktrace
 {
-    
+    NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^ANRCollect", logNum,[self getCurrntTime]];
+    @synchronized (self) {
+        [self logNumAddOne];
+        [att appendFormat:@"^%f",threshold];
+        [att appendFormat:@"^%@",mainThreadBacktrace];
+        [att appendFormat:@"^%@",allThreadBacktrace];
+        [att appendFormat:@"%@",@"\n"];
+    }
+    [self normalDataStrAppendwith:att];
+}
+
+- (NSString *)getCurrntTime {
+    NSTimeInterval curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%.1f",curt];
+    return currntTime;
 }
 
 

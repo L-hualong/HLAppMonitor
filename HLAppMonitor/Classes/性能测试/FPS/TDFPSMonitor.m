@@ -14,7 +14,7 @@
 @property (nonatomic, assign) NSUInteger count;
 @property (nonatomic, assign) BOOL isMonitoring;
 @property (nonatomic, assign) NSTimeInterval lastTime;
-@property (nonatomic, assign) TDFPSDisplayer * displayer;
+//@property (nonatomic, assign) TDFPSDisplayer * displayer;
 @property (nonatomic, strong) CADisplayLink * displayLink;
 @end
 @implementation TDFPSMonitor
@@ -47,10 +47,10 @@
     
     if (_isMonitoring) { return; }
     _isMonitoring = YES;
-    [self.displayer removeFromSuperview];
-    TDFPSDisplayer * displayer = [[TDFPSDisplayer alloc] init];
-    self.displayer = displayer;
-    [[TDTopWindow topWindow] addSubview: self.displayer];
+//    [self.displayer removeFromSuperview];
+//    TDFPSDisplayer * displayer = [[TDFPSDisplayer alloc] init];
+//    self.displayer = displayer;
+//    [[TDTopWindow topWindow] addSubview: self.displayer];
     
     self.displayLink = [CADisplayLink displayLinkWithTarget: [[TDWeakProxy alloc]initWithTarget:self] selector: @selector(monitor:)];
     [self.displayLink addToRunLoop: [NSRunLoop mainRunLoop] forMode: NSRunLoopCommonModes];
@@ -69,10 +69,10 @@
 - (void)stopMonitoring {
     if (!_isMonitoring) { return; }
     _isMonitoring = NO;
-    [self.displayer removeFromSuperview];
+//    [self.displayer removeFromSuperview];
     [self.displayLink invalidate];
     self.displayLink = nil;
-    self.displayer = nil;
+//    self.displayer = nil;
 }
 #pragma mark - DisplayLink
 - (void)monitor: (CADisplayLink *)link {
@@ -84,7 +84,7 @@
     double fps = _count / delta;
     _fps = fps;
     _count = 0;
-    [self.displayer updateFPS: (int)round(fps)];
+//    [self.displayer updateFPS: (int)round(fps)];
 }
 //获取帧率
 - (double)getFPS {
