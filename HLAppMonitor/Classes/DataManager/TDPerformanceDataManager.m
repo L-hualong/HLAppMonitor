@@ -167,7 +167,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     }
     NSString * bid = [[NSBundle mainBundle]bundleIdentifier];
     NSString * appName = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleDisplayName"];
-    NSString * appVersion = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleVersion"];
+    NSString * appVersion = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleShortVersionString"];
     NSString * deviceVersion = [UIDevice currentDevice].systemVersion;
     NSString * deviceName = [UIDevice currentDevice].systemName;
     NSTimeInterval curt = [self currentTime];
@@ -244,7 +244,7 @@ static NSString * td_resource_monitorData_callback_key;
         [att appendFormat:@"^%@",sysRam]; //百分比
         [att appendFormat:@"^%@",fps];
         [att appendFormat:@"^%@",appNetReceived]; //KB
-        [att appendFormat:@"%@",@"\n"];
+        [att appendFormat:@"^%@",@"\n"];
     }
     return att.copy;
     
@@ -261,7 +261,8 @@ static NSString * td_resource_monitorData_callback_key;
         [att appendFormat:@"^%@",appVersion];
         [att appendFormat:@"^%@",deviceVersion];
         [att appendFormat:@"^%@",deviceName];
-        [att appendFormat:@"%@",@"\n"];
+        [att appendFormat:@"^100"];
+        [att appendFormat:@"^%@",@"\n"];
     }
     return att.copy;
     
@@ -275,7 +276,7 @@ static NSString * td_resource_monitorData_callback_key;
         [hookSt appendFormat:@"^%@",hookMethod];
         [hookSt appendFormat:@"^%@",startTime];
         [hookSt appendFormat:@"^%@",endTime];
-        [hookSt appendFormat:@"%@",@"\n"];
+        [hookSt appendFormat:@"^%@",@"\n"];
     }
     return hookSt.copy;
 }
@@ -288,7 +289,7 @@ static NSString * td_resource_monitorData_callback_key;
         [self logNumAddOne];
         [renderStr appendFormat:@"^%@",className];
         [renderStr appendFormat:@"^%@",renderTime];
-        [renderStr appendFormat:@"%@",@"\n"];
+        [renderStr appendFormat:@"^%@",@"\n"];
     }
     return renderStr.copy;
 }
@@ -332,7 +333,7 @@ static NSString * td_resource_monitorData_callback_key;
         [self logNumAddOne];
         [att appendFormat:@"^%@",NSStringFromClass(object.classForCoder)];
         [att appendFormat:@"^%@",object];
-        [att appendFormat:@"%@",@"\n"];
+        [att appendFormat:@"^%@",@"\n"];
     }
     [self normalDataStrAppendwith:att];
 }
@@ -363,7 +364,7 @@ static NSString * td_resource_monitorData_callback_key;
         [att appendFormat:@"^%@",reason];
         [att appendFormat:@"^%@",appinfo];
         [att appendFormat:@"^%@",callStack];
-        [att appendFormat:@"%@",@"\n"];
+        [att appendFormat:@"^%@",@"\n"];
     }
     return att.copy;
     
@@ -378,7 +379,7 @@ static NSString * td_resource_monitorData_callback_key;
         [att appendFormat:@"^%f",threshold];
         [att appendFormat:@"^%@",mainThreadBacktrace];
         [att appendFormat:@"^%@",allThreadBacktrace];
-        [att appendFormat:@"%@",@"\n"];
+        [att appendFormat:@"^%@",@"\n"];
     }
     [self normalDataStrAppendwith:att];
 }
