@@ -32,7 +32,7 @@ TODO: Add long description of the pod here.
 
   s.source_files = 'HLAppMonitor/Classes/**/*'
 
-  s.dependency 'TDWKit', '~> 0.3.7'
+  # s.dependency 'TDWKit', '~> 0.3.7'
 
 
 
