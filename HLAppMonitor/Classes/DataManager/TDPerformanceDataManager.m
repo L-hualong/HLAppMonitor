@@ -170,8 +170,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     NSString * appVersion = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleShortVersionString"];
     NSString * deviceVersion = [UIDevice currentDevice].systemVersion;
     NSString * deviceName = [UIDevice currentDevice].systemName;
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
     NSString * appInfo = [self getStringAppBaseDataTime:currntime withBundleId:bid withAppName:appName withAppVersion:appVersion withDeviceVersion:deviceVersion withDeviceName:deviceName];
     [self normalDataStrAppendwith:appInfo];
 }
@@ -188,8 +188,8 @@ static NSString * td_resource_monitorData_callback_key;
 //    __weak typeof(self) weakSelf = self;
     
 //    td_resource_monitorData_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
     double fps = [[TDFPSMonitor sharedMonitor] getFPS];
     NSString *fpsStr = [NSString stringWithFormat:@"%d",(int)fps];
     double appRam = [[Memory applicationUsage][0] doubleValue];
@@ -220,15 +220,15 @@ static NSString * td_resource_monitorData_callback_key;
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
 }
 //异步获取数据,生命周期方法名
-- (void)syncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod {
+- (void)syncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier {
     if (!self.isStartCasch) {
         return;
     }
     __weak typeof(self) weakSelf = self;
     [self syncExecute:^{
-        NSTimeInterval curt = [self currentTime];
-        NSString *currntime = [NSString stringWithFormat:@"%.1f",curt];
-        NSString *hookS = [weakSelf getStringExecuteTime:currntime withClassName:className withStartTime:startTime withEndTime:endTime withHookMethod:hookMethod];
+        long long curt = [self currentTime];
+        NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+        NSString *hookS = [weakSelf getStringExecuteTime:currntime withClassName:className withStartTime:startTime withEndTime:endTime withHookMethod:hookMethod  withUniqueIdentifier: uniqueIdentifier];
         [weakSelf normalDataStrAppendwith:hookS];
     }];
 }
@@ -267,13 +267,13 @@ static NSString * td_resource_monitorData_callback_key;
     return att.copy;
     
 }
-//页面生命周期方法
-- (NSString *)getStringExecuteTime:(NSString *)currntTime withClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod {
-    NSMutableString *hookSt = [[NSMutableString alloc]initWithFormat:@"%ld^%@^traceCollect", logNum,currntTime];
+//页面生命周期方法,uniqueIdentifier:页面唯一标识
+- (NSString *)getStringExecuteTime:(NSString *)currntTime withClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier{
+    NSMutableString *hookSt = [[NSMutableString alloc]initWithFormat:@"%ld^%@^%@", logNum,currntTime,hookMethod];
     @synchronized (self) {
         [self logNumAddOne];
         [hookSt appendFormat:@"^%@",className];
-        [hookSt appendFormat:@"^%@",hookMethod];
+        [hookSt appendFormat:@"^%@",uniqueIdentifier];
         [hookSt appendFormat:@"^%@",startTime];
         [hookSt appendFormat:@"^%@",endTime];
         [hookSt appendFormat:@"^%@",@"\n"];
@@ -282,8 +282,8 @@ static NSString * td_resource_monitorData_callback_key;
 }
 //页面渲染时间
 - (NSString *)getRenderWithClassName:(NSString *)className withRenderTime:(NSString *)renderTime {
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
     NSMutableString *renderStr = [[NSMutableString alloc]initWithFormat:@"%ld^%@^renderCollect", logNum,currntime];
     @synchronized (self) {
         [self logNumAddOne];
@@ -303,8 +303,11 @@ static NSString * td_resource_monitorData_callback_key;
 }
 
 //获取当前时间
-- (NSTimeInterval)currentTime {
-    return [[NSDate date] timeIntervalSince1970] * 1000;
+- (long long)currentTime {
+    NSTimeInterval time = [[NSDate date] timeIntervalSince1970] * 1000;
+    long long dTime = [[NSNumber numberWithDouble:time] longLongValue]; 
+    return dTime;
+    //return [[NSDate date] timeIntervalSince1970] * 1000;
 }
 - (NSMutableString *)normalDataStr {
     if (_normalDataStr) {
@@ -326,8 +329,8 @@ static NSString * td_resource_monitorData_callback_key;
 //检测到内存泄漏
 -(void)leakEye:(LeakEye *)leakEye didCatchLeak:(NSObject *)object
 {
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntTime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^leakCollect",logNum,currntTime];
     @synchronized (self) {
         [self logNumAddOne];
@@ -354,8 +357,8 @@ static NSString * td_resource_monitorData_callback_key;
     NSString *appinfo = model.appinfo;
     NSString *callStack = model.callStack;
     
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntTime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^CrashCollect", logNum,currntTime];
     @synchronized (self) {
         [self logNumAddOne];
@@ -385,8 +388,8 @@ static NSString * td_resource_monitorData_callback_key;
 }
 
 - (NSString *)getCurrntTime {
-    NSTimeInterval curt = [self currentTime];
-    NSString *currntTime = [NSString stringWithFormat:@"%.1f",curt];
+    long long curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
     return currntTime;
 }
 
