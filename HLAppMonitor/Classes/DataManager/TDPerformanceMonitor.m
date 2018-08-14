@@ -164,6 +164,11 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
     //增加信号量加1（发送一个信号量信号）,
     dispatch_semaphore_signal(semaphore);
 }
+- (long long)currentTime {
+    NSTimeInterval time = [[NSDate date] timeIntervalSince1970] * 1000;
+    long long dTime = [[NSNumber numberWithDouble:time] longLongValue]; 
+    return dTime;//[[NSDate date] timeIntervalSince1970] * 1000;
+}
 - (void)start
 {
     if (observer)
@@ -192,6 +197,38 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
                                                             &context);
     //将观察者添加到主线程runloop的common模式下的观察中
     CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
+    /**
+     dispatch_queue_t serialQueue = dispatch_queue_create("serial", DISPATCH_QUEUE_SERIAL);
+     self.timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, serialQueue);
+     dispatch_source_set_timer(self.timer, DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC, 0);
+     
+     __block int8_t chokeCount = 0;
+     dispatch_semaphore_t t2 = dispatch_semaphore_create(0);
+     dispatch_source_set_event_handler(self.timer, ^{
+     if (config->activity == kCFRunLoopBeforeWaiting) {
+     static BOOL ex = YES;
+     if (ex == NO) {
+     chokeCount ++;
+     if (chokeCount > 40) {
+     NSLog(@"差不多卡死了");
+     dispatch_suspend(self.timer);
+     return ;
+     }
+     NSLog(@"卡顿了");
+     return ;
+     }
+     dispatch_async(dispatch_get_main_queue(), ^{
+     ex = YES;
+     dispatch_semaphore_signal(t2);
+     });
+     BOOL su = dispatch_semaphore_wait(t2, dispatch_time(DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC));
+     if (su != 0) {
+     ex = NO;
+     };
+     }
+     });
+
+     */
     
   //并行队列
     dispatch_queue_t queue = dispatch_queue_create("TDPerformanceMonitorQueue", DISPATCH_QUEUE_CONCURRENT);
@@ -245,6 +282,7 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
     //获取堆栈信息
    NSString *threamData =  [TDBacktraceLogger td_backtraceOfAllThread];
     [self.backtraceLoggerArray addObject:threamData];
+    NSLog(@"recodeLogger=%@",self.backtraceLoggerArray);
 }
 - (void)logStack{
     void* callstack[128];

@@ -376,12 +376,27 @@ static NSString * td_resource_monitorData_callback_key;
 //检测到卡顿
 - (void)anrEyeWithAnrEye:(ANREye *)anrEye catchWithThreshold:(double)threshold mainThreadBacktrace:(NSString *)mainThreadBacktrace allThreadBacktrace:(NSString *)allThreadBacktrace
 {
+//    //##&&**###INRCollect作为唯一标识
+//    NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^", logNum,[self getCurrntTime]];
+//    @synchronized (self) {
+//        [self logNumAddOne];
+//        [att appendFormat:@"^%f",threshold];
+//        [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
+//        [att appendFormat:@"%@",mainThreadBacktrace];
+//        [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
+//        [att appendFormat:@"%@",allThreadBacktrace];
+//        [att appendFormat:@"^%@",@"\n"];
+//    }
+//    [self normalDataStrAppendwith:att];
+}
+- (void)anrEyeWithAnrEye:(ANREye *)anrEye catonLength:(double)catonLength catchWithThreshold:(double)threshold timeStamp: Double mainThreadBacktrace:(NSString *)mainThreadBacktrace allThreadBacktrace:(NSString *)allThreadBacktrace {
+    
     //##&&**###INRCollect作为唯一标识
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^", logNum,[self getCurrntTime]];
     @synchronized (self) {
         [self logNumAddOne];
-        [att appendFormat:@"^%f",threshold];
-        [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectMainThreadBacktrace",@"\n"];
+        [att appendFormat:@"^catonLength %f",catonLength];
+        [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
         [att appendFormat:@"%@",mainThreadBacktrace];
         [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
         [att appendFormat:@"%@",allThreadBacktrace];
@@ -389,7 +404,6 @@ static NSString * td_resource_monitorData_callback_key;
     }
     [self normalDataStrAppendwith:att];
 }
-
 - (NSString *)getCurrntTime {
     long long curt = [self currentTime];
     NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
