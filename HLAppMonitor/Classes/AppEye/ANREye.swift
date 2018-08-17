@@ -16,10 +16,9 @@ import Foundation
                                catchWithThreshold threshold:Double,
                                mainThreadBacktrace:String?,
                                allThreadBacktrace:String?)
-    //catonLength 卡顿时长,timeStamp:时间戳
-    @objc optional func anrEye(anrEye:ANREye,catonLength:Double,
+    // 卡顿时长,startTime:开始时间,endTime:结束数据,都是以毫秒的时间戳
+    @objc optional func anrEye(anrEye:ANREye,startTime:Int64,endTime: Int64,
                                catchWithThreshold threshold:Double,
-                               timeStamp: Double,
                                mainThreadBacktrace:String?,
                                allThreadBacktrace:String?)
 }
@@ -59,8 +58,6 @@ open class ANREye: NSObject {
         self.pingThread = AppPingThread()
         var main: String?
         var all: String?
-        //获取时间戳毫秒
-        var cureTime: TimeInterval = 0
         self.pingThread?.start(threshold: threshold, handler: { [weak self] in
             
             guard let sself = self else {
@@ -69,19 +66,18 @@ open class ANREye: NSObject {
             
             main = AppBacktrace.mainThread() 
              all = AppBacktrace.allThread()
-            cureTime = NSDate().timeIntervalSince1970 * 1000
             sself.delegate?.anrEye?(anrEye: sself,
                                     catchWithThreshold: threshold,
                                     mainThreadBacktrace: main,
                                     allThreadBacktrace: all)
-        }, catonLengthhandler: { [weak self]  (catonLengthTime) in
+        }, catonLengthhandler: { [weak self]  (startTime,endTime) in
             guard let sself = self else {
                 return
             }
             
 //            let main = AppBacktrace.mainThread()
 //            let all = AppBacktrace.allThread()
-            sself.delegate?.anrEye!(anrEye: sself, catonLength: catonLengthTime, catchWithThreshold: threshold, timeStamp: cureTime, mainThreadBacktrace: main, allThreadBacktrace: all)
+            sself.delegate?.anrEye?(anrEye: sself, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktrace: main, allThreadBacktrace: all)
         })
 //        self.pingThread?.start(threshold: threshold, handler: { [weak self] in
 //            guard let sself = self else {
@@ -121,7 +117,7 @@ open class ANREye: NSObject {
 //--------------------------------------------------------------------------
 public typealias AppPingThreadCallBack = () -> Void
 //卡顿时长回到
-public typealias AppPingCatonLengthThreadCallBack = (Double) -> Void
+public typealias AppPingCatonLengthThreadCallBack = (Int64,Int64) -> Void
 
 //--------------------------------------------------------------------------
 // MARK: - AppPingThread
@@ -141,7 +137,7 @@ private class AppPingThread: Thread {
             self.isMainThreadBlock = true
             //是否卡顿
             var isCaton: Bool = false
-            let time1 = self.currentTime()
+            let startTime = self.currentTime()
             DispatchQueue.main.async {
                 self.isMainThreadBlock = false
                 //发送信号量将semaphore的值+1，这个时候其他等待中的线程就会被唤醒执行（同等优先级下随机唤醒）
@@ -154,17 +150,17 @@ private class AppPingThread: Thread {
                 self.handler?()
             }
             //DispatchTime.distantFuture， 等待信号量 timeout可以控制可等待的最长时间，设置为.distantFuture表示永久等待
-            self.semaphore.wait(timeout: DispatchTime.distantFuture)
+           let _ = self.semaphore.wait(timeout: DispatchTime.distantFuture)
             //有卡顿信息才回调出去
             if isCaton {
                 //如果是大于时间间隔就将时间回调出去
-                let time2 = self.currentTime()
-                let catonLengTime = time2 - time1
-                if catonLengTime > self.threshold * 1000 {
-                    self.catonLengthhandler?(catonLengTime)
+                let endTime = self.currentTime()
+                let catonLengTime = endTime - startTime
+                if catonLengTime > Int64(self.threshold * 1000) {
+                    self.catonLengthhandler?(startTime,endTime)
                 }
                 
-                print("time=%d",time2 - time1)
+                print("time=%d",endTime - startTime)
             }
         }
     }
@@ -177,11 +173,12 @@ private class AppPingThread: Thread {
     
     fileprivate var handler: (() -> Void)?
     //卡顿时长block
-    fileprivate var catonLengthhandler: ((Double) -> Void)?
+    fileprivate var catonLengthhandler: ((Int64,Int64) -> Void)?
     
-    func currentTime() -> Double {
+    func currentTime() -> Int64 {
         let time = NSDate().timeIntervalSince1970 * 1000
-        return time
+        let timeN = NSNumber(value: time).int64Value
+        return timeN
     }
     
 }
