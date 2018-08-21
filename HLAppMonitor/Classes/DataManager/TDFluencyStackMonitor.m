@@ -7,7 +7,7 @@
 
 #import "TDFluencyStackMonitor.h"
 #import "../性能测试/Logger/TDBacktraceLogger.h"
-
+#import "../性能测试/TDWeakProxy.h"
 static BOOL td_is_monitoring = NO;
 static dispatch_semaphore_t td_semaphore;
 static int thresholdTimeCount = 100;
@@ -53,7 +53,7 @@ static inline dispatch_queue_t __td_fluecy_monitor_queue() {
     td_semaphore = dispatch_semaphore_create(0);
     dispatch_async(__td_fluecy_monitor_queue(), ^{
         
-        CADisplayLink * displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(screenRenderCall)];
+        CADisplayLink * displayLink = [CADisplayLink displayLinkWithTarget: [[TDWeakProxy alloc]initWithTarget:self] selector: @selector(screenRenderCall)];
         [self ->displayLink invalidate];
         self ->displayLink = displayLink;
         
@@ -86,6 +86,7 @@ static inline dispatch_queue_t __td_fluecy_monitor_queue() {
                 return; 
             }
             long long endTime = [self currentTime];
+            //记录每一次卡顿信息,
             NSString *string = [NSString stringWithFormat:@"startTime=%lld---endTime=%lld",self ->startTime,endTime];
             [self stitchingCatonStackData:string withIsEmpty:NO];
             NSLog(@"卡死了----%ld",st);
@@ -93,7 +94,7 @@ static inline dispatch_queue_t __td_fluecy_monitor_queue() {
     }else{
         //如果能走这里来就是前面没有出现卡顿或者出现卡顿情况现在恢复了
         if (self ->timeOut > 0) {//表示前面出现了卡顿了以后就没有出现卡顿了
-            
+            //这里记录卡顿结束后时间,和前面第一次卡顿开始时间相差就是这个卡顿时长了
             long long endTime = [self currentTime];
             NSString *string = [NSString stringWithFormat:@"endTime=%lld",endTime];
             [self stitchingCatonStackData:string withIsEmpty:YES];
