@@ -27,7 +27,7 @@
 - (void)writeToFileWith:(NSData *)data;
 
 //异步获取数据,生命周期方法名
-- (void)syncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier;
+- (void)asyncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier;
 //写入沙盒里
 - (void)recordDataIntervalTime: (NSInteger)intervaTime;
 @end

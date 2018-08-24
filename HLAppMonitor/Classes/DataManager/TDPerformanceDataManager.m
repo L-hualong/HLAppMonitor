@@ -88,7 +88,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     self->anrEye.delegate = self;
     [self->anrEye openWith:1];
 
-    [[TDFluencyStackMonitor sharedInstance]startWithThresholdTime:200];
+   // [[TDFluencyStackMonitor sharedInstance]startWithThresholdTime:200];
     if (td_resource_monitorData_callback_key != nil) {return;}
     
     //监听数据
@@ -103,21 +103,15 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
             [weakSelf getStringResourceDataTime:currntime withStartOrEndTime:currntime withIsStartTime:NO];
             NSData *normalData = [weakSelf.normalDataStr dataUsingEncoding:NSUTF8StringEncoding];
             [weakSelf writeToFileWith:normalData];
-            
-            //堆栈信息
-//            NSArray * backtraceLoggerArray = [TDPerformanceMonitor sharedInstance].backtraceLoggerArray.copy;
-//            if (backtraceLoggerArray.count > 0) {
-//                NSData *backtraceData = [backtraceLoggerArray TDJSONData];
-//                [data1 appendData:backtraceData];
-//            }
+    
         });
     }] copy];
 }
-
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
-    NSString * filePath = [self createFilePath];
+    NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
     NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLog.txt"];
+    // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
     if (fileNum == 1) {
         fileNum += 1;
         [[NSData new] writeToFile:fileDicPath atomically:YES];
@@ -202,6 +196,7 @@ static NSString * td_resource_monitorData_callback_key;
     NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
     double fps = [[TDFPSMonitor sharedMonitor] getFPS];
     NSString *fpsStr = [NSString stringWithFormat:@"%d",(int)fps];
+    
     double appRam = [[Memory applicationUsage][0] doubleValue];
     NSString *appRamStr = [NSString stringWithFormat:@"%.1f",appRam];
     double activeRam = [[Memory systemUsage][1] doubleValue];
@@ -255,12 +250,12 @@ static NSString * td_resource_monitorData_callback_key;
     }
 }
 //异步获取数据,生命周期方法名
-- (void)syncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier {
+- (void)asyncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier {
     if (!self.isStartCasch) {
         return;
     }
     __weak typeof(self) weakSelf = self;
-    [self syncExecute:^{
+    [self asyncExecute:^{
         long long curt = [self currentTime];
         NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
         NSString *hookS = [weakSelf getStringExecuteTime:currntime withClassName:className withStartTime:startTime withEndTime:endTime withHookMethod:hookMethod  withUniqueIdentifier: uniqueIdentifier];
@@ -328,7 +323,7 @@ static NSString * td_resource_monitorData_callback_key;
     }
     return renderStr.copy;
 }
-- (void)syncExecute: (dispatch_block_t)block {
+- (void)asyncExecute: (dispatch_block_t)block {
     assert(block != nil);
     if ([NSThread isMainThread]) {
         TDDispatchQueueAsyncBlockInUtility(block);

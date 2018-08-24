@@ -62,7 +62,29 @@ static NSTimeInterval renderStartTime = 0;
     [self toHookViewWillDisappear:cls];
     [self toHookViewDidDisappear:cls];
 }
-
+//hook控制器初始化方法
++ (void)toHookInitViewController:(Class)class {
+    SEL selector = @selector(initWithNibName:bundle:);
+    SEL swizzledSelector = [self swizzledSelectorForSelector:selector];
+    
+    void (^swizzledBlock)(UIViewController *) = ^(UIViewController *viewController) {
+        long long start = [self currentTime];
+        if ([[[UIDevice currentDevice] systemVersion] doubleValue] >= 8) {
+            ((void(*)(id, SEL))objc_msgSend)(viewController, swizzledSelector);
+        }else{
+            //ios8下特殊写法  
+            ((void(*)(id,SEL, id,id))objc_msgSend)(viewController, swizzledSelector, nil, nil);  
+        }
+        long long end = [self currentTime];
+        //        NSTimeInterval cast = end - start;
+        //        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
+        //NSLog(@"swizzled loadView Start %@ %f %@",viewController.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
+        NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
+        NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"initWithNibName:bundle:" withUniqueIdentifier: uniqueIdentifier];
+    };
+    [self replaceImplementationOfKnownSelector:selector onClass:class withBlock:swizzledBlock swizzledSelector:swizzledSelector];
+}
 + (void)toHookLoadView:(Class)class {
     SEL selector = @selector(loadView);
     
@@ -82,7 +104,7 @@ static NSTimeInterval renderStartTime = 0;
         //NSLog(@"swizzled loadView Start %@ %f %@",viewController.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"loadView" withUniqueIdentifier: uniqueIdentifier];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"loadView" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:selector onClass:class withBlock:swizzledBlock swizzledSelector:swizzledSelector];
 }
@@ -107,7 +129,7 @@ static NSTimeInterval renderStartTime = 0;
        // [[TDLoadingTimeMonitor sharedInstance] updateData:att1];
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidLoad" withUniqueIdentifier: uniqueIdentifier];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidLoad" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:selector onClass:class withBlock:swizzledBlock swizzledSelector:swizzledSelector];
 }
@@ -122,7 +144,9 @@ static NSTimeInterval renderStartTime = 0;
         long long end = [self currentTime];
 //        NSTimeInterval cast = end - start;
 //        NSLog(@"swizzled viewWillAppear %@ %f %@",vc.class,cast,[[NSString alloc]initWithUTF8String:class_getName(class)]);
-        
+        NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
+        NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewWillAppear" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }
@@ -135,15 +159,15 @@ static NSTimeInterval renderStartTime = 0;
         long long start = [self currentTime];
         ((void(*)(id, SEL, BOOL))objc_msgSend)(vc, swizzledSelector, animated);
         long long end = [self currentTime];
-        long long renderTime = end - renderStartTime;
-        NSString* renderStr = [[TDPerformanceDataManager sharedInstance] getRenderWithClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withRenderTime:[NSString stringWithFormat:@"%lld",renderTime]];
+
+    //    NSString* renderStr = [[TDPerformanceDataManager sharedInstance] getRenderWithClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withRenderTime:[NSString stringWithFormat:@"%lld",renderTime]];
      //   [[TDPerformanceDataManager sharedInstance] normalDataStrAppendwith:renderStr];
 //        NSTimeInterval cast = end - start;
 //        NSLog(@"swizzled viewDidAppearStart %@ %f %@",vc.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
 //        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidAppear" withUniqueIdentifier: uniqueIdentifier];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidAppear" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }
@@ -155,8 +179,10 @@ static NSTimeInterval renderStartTime = 0;
         long long start = [self currentTime];
         ((void(*)(id, SEL, BOOL))objc_msgSend)(vc, swizzledSelector, animated);
         long long end = [self currentTime];
-        long long cast = end - start;
       //  NSLog(@"swizzled viewWillDisappear %@ %f %@",vc.class,cast,[[NSString alloc]initWithUTF8String:class_getName(class)]);
+        NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
+        NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewWillDisappear" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }
@@ -170,13 +196,12 @@ static NSTimeInterval renderStartTime = 0;
         long long start = [self currentTime];
         ((void(*)(id, SEL, BOOL))objc_msgSend)(vc, swizzledSelector, animated);
         long long end = [self currentTime];
-        long long cast = end - start;
        // NSLog(@"swizzled viewDidDisappear %@ %f %@",vc.class,cast,[[NSString alloc]initWithUTF8String:class_getName(class)]);
 //        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",end],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%p",className,class];
         NSLog(@"class=%@",uniqueIdentifier);
-        [[TDPerformanceDataManager sharedInstance] syncExecuteClassName: className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidDisappear" withUniqueIdentifier: uniqueIdentifier];
+        [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName: className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidDisappear" withUniqueIdentifier: uniqueIdentifier];
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }

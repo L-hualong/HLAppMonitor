@@ -46,17 +46,20 @@ static inline dispatch_queue_t __td_fluecy_monitor_queue() {
     self ->startTime = 0;
     td_is_monitoring = YES;
     if (threshold > 0) {
+        //threshold 时间间隔,表示超过多少threshold阙值来记录卡顿信息
          thresholdTimeCount = threshold / 16.667;
     }else{
+        //默认是thresholdTime=250ms间隔来记录卡顿信息的
          thresholdTimeCount = thresholdTime / 16.667;
     }
     td_semaphore = dispatch_semaphore_create(0);
+    //子线程开启displayLink刷新帧率
     dispatch_async(__td_fluecy_monitor_queue(), ^{
         
         CADisplayLink * displayLink = [CADisplayLink displayLinkWithTarget: [[TDWeakProxy alloc]initWithTarget:self] selector: @selector(screenRenderCall)];
         [self ->displayLink invalidate];
         self ->displayLink = displayLink;
-        
+
         [self ->displayLink addToRunLoop: [NSRunLoop currentRunLoop] forMode: NSDefaultRunLoopMode];
         CFRunLoopRunInMode(kCFRunLoopDefaultMode, CGFLOAT_MAX, NO);
     });
