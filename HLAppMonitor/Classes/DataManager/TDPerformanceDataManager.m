@@ -218,7 +218,7 @@ static NSString * td_resource_monitorData_callback_key;
     }];
 
     //开始时间
-    [self getStringResourceDataTime:currntime withStartOrEndTime:[NSString stringWithFormat:@"%lld",self ->startTime] withIsStartTime:YES];
+//    [self getStringResourceDataTime:currntime withStartOrEndTime:[NSString stringWithFormat:@"%lld",self ->startTime] withIsStartTime:YES];
     NSString *normS = [self getStringResourceDataTime:currntime withFPS:fpsStr withAppRam:appRamStr withSysRam:sysRamPercentStr withAppCpu:appCpuStr withSysCpu:systemCpuStr withAppNetReceived:appNetReceivedStr];
     [self normalDataStrAppendwith:normS];
 //    }] copy];
@@ -227,7 +227,7 @@ static NSString * td_resource_monitorData_callback_key;
     if (td_resource_monitorData_callback_key == nil) { return; }
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
 }
-//拼接开始或结束时间 startEndTime: 开始或结束时间 ,isStartTime是否开始还是结束时间
+////拼接开始或结束时间 startEndTime: 开始或结束时间 ,isStartTime是否开始还是结束时间
 - (void)getStringResourceDataTime:(NSString *)currntTime withStartOrEndTime:(NSString *)startEndTime withIsStartTime:(BOOL) isStartTime {
     if (isStartTime) {
         //将开始时间拼接在这里
