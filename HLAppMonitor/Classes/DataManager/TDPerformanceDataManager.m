@@ -110,7 +110,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
     NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLog.txt"];
+    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS"];
     // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
     if (fileNum == 1) {
         fileNum += 1;
@@ -152,7 +152,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //清空txt文件
 - (void)clearTxt {
     NSString * filePath = [self createFilePath];
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLog.txt"];
+    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLog.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     [handle truncateFileAtOffset:0];
@@ -212,7 +212,7 @@ static NSString * td_resource_monitorData_callback_key;
     NSString *niceCpu = [CPU systemUsage][3] ;
     double systemCpu = sysCpu.doubleValue + userCpu.doubleValue + niceCpu.doubleValue;
     NSString *systemCpuStr = [NSString stringWithFormat:@"%.1f",systemCpu];
-    __block NSString *appNetReceivedStr = @"";
+    __block NSString *appNetReceivedStr = @"0.0";
     [Store.shared networkByteDidChangeWithChange:^(double byte) {
         appNetReceivedStr = [NSString stringWithFormat:@"%.1f",byte/1024];
     }];
