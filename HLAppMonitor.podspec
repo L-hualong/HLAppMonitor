@@ -7,9 +7,9 @@
 #
 
 Pod::Spec.new do |s|
-  s.name             = 'TDWAppMonitor'
-  s.version          = '1.0.3'
-  s.summary          = 'ios性能监控：TDWAppMonitor.'
+  s.name             = 'HLAppMonitor'
+  s.version          = '1.0.2'
+  s.summary          = 'ios性能监控：HLAppMonitor.'
 
 # This description is used to generate tags and improve search results.
 #   * Think: What does it do? Why did you write it? What is the focus?
@@ -21,16 +21,16 @@ Pod::Spec.new do |s|
 TODO: Add long description of the pod here.
                        DESC
 
-  s.homepage         = 'https://github.com/TuanDai-MPD/TDWAppMonitor'
+  s.homepage         = 'https://github.com/L-hualong/HLAppMonitor'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'liuhualong' => 'hualong8849@qq.com' }
-  s.source           = { :git => 'https://github.com/TuanDai-MPD/TDWAppMonitor.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/L-hualong/HLAppMonitor.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '8.0'
 
-  s.source_files = 'TDWAppMonitor/Classes/**/*'
+  s.source_files = 'HLAppMonitor/Classes/**/*'
 
   # s.dependency 'TDWKit', '~> 0.3.7'
 
