@@ -34,6 +34,8 @@
  @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
  */
 - (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime;
+//定时将数据字符串写入沙盒文件 兼容之前写main分支代码
+- (void)recordDataIntervalTime: (NSInteger)intervaTime;
 //停止写入监控性能数据
 - (void)stopUploadResourceData;
 @end
