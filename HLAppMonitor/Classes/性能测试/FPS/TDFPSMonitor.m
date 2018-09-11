@@ -47,11 +47,6 @@
     
     if (_isMonitoring) { return; }
     _isMonitoring = YES;
-//    [self.displayer removeFromSuperview];
-//    TDFPSDisplayer * displayer = [[TDFPSDisplayer alloc] init];
-//    self.displayer = displayer;
-//    [[TDTopWindow topWindow] addSubview: self.displayer];
-    
     self.displayLink = [CADisplayLink displayLinkWithTarget: [[TDWeakProxy alloc]initWithTarget:self] selector: @selector(monitor:)];
     [self.displayLink addToRunLoop: [NSRunLoop mainRunLoop] forMode: NSRunLoopCommonModes];
     self.lastTime = self.displayLink.timestamp;
