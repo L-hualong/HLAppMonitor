@@ -65,9 +65,9 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 /**
  定时将数据字符串写入沙盒文件
 
- @param intervaTime 时间间隔
+ @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
  */
-- (void)recordDataIntervalTime: (NSInteger)intervaTime {
+- (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime {
     self ->startTime = [self currentTime];
     //开启fps监控
     [[TDFPSMonitor sharedMonitor]startMonitoring];
@@ -87,16 +87,18 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     self->anrEye = [[ANREye alloc] init];
     self->anrEye.delegate = self;
     [self->anrEye openWith:1];
-
+     //基本性能数据获取定时器
+    [self startBasicResourceDataTime:basicTime];
    // [[TDFluencyStackMonitor sharedInstance]startWithThresholdTime:200];
-    if (td_resource_monitorData_callback_key != nil) {return;}
-    
+    if (td_resource_recordDataIntervalTime_callback_key != nil) {return;}
+    //设置定时器间隔
+    [TDGlobalTimer setUploadCallbackInterval:intervaTime];
     //监听数据
     __weak typeof(self) weakSelf = self;
-    td_resource_recordDataIntervalTime_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
+    td_resource_recordDataIntervalTime_callback_key = [[TDGlobalTimer uploadRegisterTimerCallback: ^{
         dispatch_async(td_log_IO_queue(), ^{
             //将String写入文件
-            [weakSelf startResourceData];
+            
             //结束时间
             long long curt = [self currentTime];
             NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
@@ -181,22 +183,23 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 
 //获取app基本性能数据
 static NSString * td_resource_monitorData_callback_key;
-- (void)startResourceData {
+- (void)startBasicResourceDataTime:(NSInteger)intervaTime {
     if (!self.isStartCasch) {
         return;
     }
     if (td_resource_monitorData_callback_key != nil) { return; }
     
     //设置定时器间隔
-    [TDGlobalTimer setCallbackInterval:2];
-//    __weak typeof(self) weakSelf = self;
+    [TDGlobalTimer setCallbackInterval:intervaTime];
+  __weak typeof(self) weakSelf = self;
     
-//    td_resource_monitorData_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
+  td_resource_monitorData_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
     long long curt = [self currentTime];
     NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+      //fps
     double fps = [[TDFPSMonitor sharedMonitor] getFPS];
     NSString *fpsStr = [NSString stringWithFormat:@"%d",(int)fps];
-    
+    //内存
     double appRam = [[Memory applicationUsage][0] doubleValue];
     NSString *appRamStr = [NSString stringWithFormat:@"%.1f",appRam];
     double activeRam = [[Memory systemUsage][1] doubleValue];
@@ -205,6 +208,7 @@ static NSString * td_resource_monitorData_callback_key;
     double totleSysRam = [[Memory systemUsage][5] doubleValue];
     double sysRamPercent = ((activeRam + inactiveRam + wiredRam)/totleSysRam) *100;
     NSString *sysRamPercentStr = [NSString stringWithFormat:@"%.1f",sysRamPercent];
+      //CPU
     double appCpu = [CPU applicationUsage];
     NSString *appCpuStr = [NSString stringWithFormat:@"%.1f",appCpu];
     NSString *sysCpu = [CPU systemUsage][0];
@@ -213,19 +217,26 @@ static NSString * td_resource_monitorData_callback_key;
     double systemCpu = sysCpu.doubleValue + userCpu.doubleValue + niceCpu.doubleValue;
     NSString *systemCpuStr = [NSString stringWithFormat:@"%.1f",systemCpu];
     __block NSString *appNetReceivedStr = @"0.0";
+      //流量
     [Store.shared networkByteDidChangeWithChange:^(double byte) {
         appNetReceivedStr = [NSString stringWithFormat:@"%.1f",byte/1024];
     }];
-
-    //开始时间
-//    [self getStringResourceDataTime:currntime withStartOrEndTime:[NSString stringWithFormat:@"%lld",self ->startTime] withIsStartTime:YES];
-    NSString *normS = [self getStringResourceDataTime:currntime withFPS:fpsStr withAppRam:appRamStr withSysRam:sysRamPercentStr withAppCpu:appCpuStr withSysCpu:systemCpuStr withAppNetReceived:appNetReceivedStr];
+    NSString *normS = [weakSelf getStringResourceDataTime:currntime withFPS:fpsStr withAppRam:appRamStr withSysRam:sysRamPercentStr withAppCpu:appCpuStr withSysCpu:systemCpuStr withAppNetReceived:appNetReceivedStr];
     [self normalDataStrAppendwith:normS];
-//    }] copy];
+   }] copy];
 }
+//停止监控基本数据获取
 - (void)stopResourceData {
     if (td_resource_monitorData_callback_key == nil) { return; }
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
+    td_resource_monitorData_callback_key = NULL;
+}
+//停止写入监控性能数据
+- (void)stopUploadResourceData {
+    [self stopResourceData];
+    if (td_resource_recordDataIntervalTime_callback_key == nil) { return; }
+    [TDGlobalTimer uploadResignTimerCallbackWithKey: td_resource_recordDataIntervalTime_callback_key];
+     td_resource_recordDataIntervalTime_callback_key = NULL;
 }
 ////拼接开始或结束时间 startEndTime: 开始或结束时间 ,isStartTime是否开始还是结束时间
 - (void)getStringResourceDataTime:(NSString *)currntTime withStartOrEndTime:(NSString *)startEndTime withIsStartTime:(BOOL) isStartTime {
