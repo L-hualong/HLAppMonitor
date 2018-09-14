@@ -14,7 +14,7 @@
 #import "TDFPSMonitor.h"
 #import <HLAppMonitor/HLAppMonitor-Swift.h>
 #import "TDFluencyStackMonitor.h"
-@interface TDPerformanceDataManager () <NetworkEyeDelegate,LeakEyeDelegate,CrashEyeDelegate,ANREyeDelegate>
+@interface TDPerformanceDataManager () <NetworkEyeDelegate,LeakEyeDelegate,CrashEyeDelegate,ANREyeDelegate,TDFPSMonitorDelegate>
 {
     LeakEye *leakEye;
     ANREye *anrEye;
@@ -71,6 +71,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     self ->startTime = [self currentTime];
     //开启fps监控
     [[TDFPSMonitor sharedMonitor]startMonitoring];
+    //开启fps检测
+    [TDFPSMonitor sharedMonitor].delegate = self;
     self.isStartCasch = YES;
     [self clearTxt];
     //第一次先记录APP基础信息
@@ -117,7 +119,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
     NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
+    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
     // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
     if (fileNum == 1) {
         fileNum += 1;
@@ -159,7 +161,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //清空txt文件
 - (void)clearTxt {
     NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
+    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     [handle truncateFileAtOffset:0];
@@ -456,7 +458,54 @@ static NSString * td_resource_monitorData_callback_key;
     }
     [self normalDataStrAppendwith:att];
 }
-
+#pragma mark - TDFPSMonitorDelegate
+//fpsCount 1秒内或者大于1s(出现卡顿时),帧率次数,catonTime卡顿时长,currntTime当前时间
+- (void)fpsMonitor: (NSUInteger)fpsCount withCatonTime: (double)catonTime withCurrentTime:(NSString *)currntTime withStackInformation: (NSString *)stackInformation {
+    if (!self.isStartCasch) {
+        return;
+    }
+     NSString *mainThradB = [stackInformation stringByReplacingOccurrencesOfString:@"\n" withString:@"#&####"];
+    __weak typeof(self) weakSelf = self;
+    [self asyncExecute:^{
+        long long curt = [self currentTime];
+        NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+        NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^FPSCollect", logNum,currntime];
+        @synchronized (self) {
+            [self logNumAddOne];
+            //fps频率
+            [att appendFormat:@"^%@",[NSString stringWithFormat:@"%lu",(unsigned long)fpsCount]];
+            //两者频率刷新时间(大于=1s)
+            [att appendFormat:@"^%@",[NSString stringWithFormat:@"%f",catonTime]];
+            //获取时间
+            [att appendFormat:@"^%@",currntTime];
+            //堆栈信息
+            if (stackInformation != nil) {
+                [att appendFormat:@"^%@",mainThradB];
+            }else{
+                [att appendFormat:@"^  "];
+            }
+            [att appendFormat:@"^%@",@"\n"];
+        }
+        [weakSelf normalDataStrAppendwith:att];
+    }];
+}
+//获取帧率时间
+- (void)fpsFrameCurrentTime:(NSString *)currentTime {
+    
+    __weak typeof(self) weakSelf = self;
+    [self asyncExecute:^{
+        long long curt = [self currentTime];
+        NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+        NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^FPSCollect", logNum,currntime];
+        @synchronized (self) {
+            [self logNumAddOne];
+            //获取时间
+            [att appendFormat:@"^%@",currentTime];
+            [att appendFormat:@"^%@",@"\n"];
+        }
+        [weakSelf normalDataStrAppendwith:att];
+    }];
+}
 - (NSString *)getCurrntTime {
     long long curt = [self currentTime];
     NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];

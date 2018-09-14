@@ -19,7 +19,6 @@
 #import "TDPerformanceDataManager.h"
 unsigned int tdCount;
 const char **tdClasses;
-static NSTimeInterval renderStartTime = 0;
 @interface TDAPMControllerMonitor ()
 
 @end
@@ -55,7 +54,7 @@ static NSTimeInterval renderStartTime = 0;
     }
 }
 + (void)toHookAllMethod:(Class)cls {
-    [self toHookLoadView:cls];
+    //[self toHookLoadView:cls];
     [self toHookViewDidLoad:cls];
     [self toHookViewWillAppear:cls];
     [self toHookViewDidAppear:cls];
@@ -88,6 +87,7 @@ static NSTimeInterval renderStartTime = 0;
     SEL swizzledSelector = [self swizzledSelectorForSelector:selector];
     
     void (^swizzledBlock)(UIViewController *) = ^(UIViewController *viewController) {
+        NSLog(@"loadViewddddd = %@",viewController);
         long long start = [self currentTime];
         if ([[[UIDevice currentDevice] systemVersion] doubleValue] >= 8) {
              ((void(*)(id, SEL))objc_msgSend)(viewController, swizzledSelector);
@@ -97,6 +97,7 @@ static NSTimeInterval renderStartTime = 0;
         }
         long long end = [self currentTime];
 
+        NSLog(@"loadView = %@",viewController);
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%lud",className,(unsigned long)viewController.hash];
         [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"loadView" withUniqueIdentifier: uniqueIdentifier];
@@ -110,7 +111,6 @@ static NSTimeInterval renderStartTime = 0;
     
     void (^swizzledBlock)(UIViewController *) = ^(UIViewController *viewController) {
         long long start = [self currentTime];
-        renderStartTime = start;
         if ([[[UIDevice currentDevice] systemVersion] doubleValue] >= 8) {
             ((void(*)(id, SEL))objc_msgSend)(viewController, swizzledSelector);
         }else{
@@ -137,8 +137,6 @@ static NSTimeInterval renderStartTime = 0;
         long long start = [self currentTime];
         ((void(*)(id, SEL, BOOL))objc_msgSend)(viewController, swizzledSelector, animated);
         long long end = [self currentTime];
-//        NSTimeInterval cast = end - start;
-//        NSLog(@"swizzled viewWillAppear %@ %f %@",vc.class,cast,[[NSString alloc]initWithUTF8String:class_getName(class)]);
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%lud",className,(unsigned long)viewController.hash];
         [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewWillAppear" withUniqueIdentifier: uniqueIdentifier];
@@ -154,12 +152,6 @@ static NSTimeInterval renderStartTime = 0;
         long long start = [self currentTime];
         ((void(*)(id, SEL, BOOL))objc_msgSend)(viewController, swizzledSelector, animated);
         long long end = [self currentTime];
-
-    //    NSString* renderStr = [[TDPerformanceDataManager sharedInstance] getRenderWithClassName:[[NSString alloc]initWithUTF8String:class_getName(class)] withRenderTime:[NSString stringWithFormat:@"%lld",renderTime]];
-     //   [[TDPerformanceDataManager sharedInstance] normalDataStrAppendwith:renderStr];
-//        NSTimeInterval cast = end - start;
-//        NSLog(@"swizzled viewDidAppearStart %@ %f %@",vc.class,start,[[NSString alloc]initWithUTF8String:class_getName(class)]);
-//        NSDictionary *dict = @{@"type": [[NSNumber alloc]initWithInt:4],@"currntTime": [NSString stringWithFormat:@"%f",start],@"content":[[NSString alloc]initWithUTF8String:class_getName(class)]};
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%lud",className,(unsigned long)viewController.hash];
         [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"viewDidAppear" withUniqueIdentifier: uniqueIdentifier];

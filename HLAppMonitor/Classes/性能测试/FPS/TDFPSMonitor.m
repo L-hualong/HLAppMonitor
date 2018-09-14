@@ -10,6 +10,7 @@
 #import "TDWeakProxy.h"
 #import "TDFPSDisplayer.h"
 #import "TDTopWindow.h"
+#import "TDBacktraceLogger.h"
 @interface TDFPSMonitor ()
 @property (nonatomic, assign) NSUInteger count;
 @property (nonatomic, assign) BOOL isMonitoring;
@@ -50,15 +51,15 @@
     self.displayLink = [CADisplayLink displayLinkWithTarget: [[TDWeakProxy alloc]initWithTarget:self] selector: @selector(monitor:)];
     [self.displayLink addToRunLoop: [NSRunLoop mainRunLoop] forMode: NSRunLoopCommonModes];
     self.lastTime = self.displayLink.timestamp;
-    if ([self.displayLink respondsToSelector: @selector(setPreferredFramesPerSecond:)]) {
-        if (@available(iOS 10.0, *)) {
-            self.displayLink.preferredFramesPerSecond = 60;
-        } else {
-            // Fallback on earlier versions
-        }
-    } else {
-        self.displayLink.frameInterval = 1;
-    }
+//    if ([self.displayLink respondsToSelector: @selector(setPreferredFramesPerSecond:)]) {
+//        if (@available(iOS 10.0, *)) {
+//            self.displayLink.preferredFramesPerSecond = 60;
+//        } else {
+//            // Fallback on earlier versions
+//        }
+//    } else {
+//        self.displayLink.frameInterval = 1;
+//    }
 }
 
 - (void)stopMonitoring {
@@ -66,20 +67,50 @@
     _isMonitoring = NO;
 //    [self.displayer removeFromSuperview];
     [self.displayLink invalidate];
+    //暂停将之从RunLoop中移除即可：
+    [self.displayLink removeFromRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     self.displayLink = nil;
 //    self.displayer = nil;
 }
 #pragma mark - DisplayLink
 - (void)monitor: (CADisplayLink *)link {
+    
+    if (self.delegate && [self.delegate respondsToSelector:@selector(fpsFrameCurrentTime:)]){
+        NSString *currenT = [self getCurrntTime];
+       // NSLog(@"fps====%@",currenT);
+        [self.delegate fpsFrameCurrentTime: currenT];
+    }
+    if (_lastTime == 0) {
+        _lastTime = link.timestamp;
+        return;
+    }
     _count++;
     NSTimeInterval delta = link.timestamp - _lastTime;
-    if (delta < 1) { return; }
+    if (delta < 1) return;
     _lastTime = link.timestamp;
-    
-    double fps = _count / delta;
+    float fps = _count / delta;
     _fps = fps;
-    _count = 0;
-//    [self.displayer updateFPS: (int)round(fps)];
+//    if (self.delegate && [self.delegate respondsToSelector:@selector(fpsMonitor:withCatonTime:withCurrentTime:withStackInformation:)]){
+//        NSString *currenT = [self getCurrntTime];
+//        //主线程堆栈信息
+//        NSString *mainThread = nil;
+//        if (_count < 40 ){
+//            mainThread = [TDBacktraceLogger td_backtraceOfMainThread];
+//        }
+//        [self.delegate fpsMonitor: _count withCatonTime:delta withCurrentTime: currenT withStackInformation: mainThread];
+//    }
+    _count = 0;    
+}
+//获取当前时间
+- (long long)currentTime {
+    NSTimeInterval time = [[NSDate date] timeIntervalSince1970] * 1000;
+    long long dTime = [[NSNumber numberWithDouble:time] longLongValue]; 
+    return dTime;
+}
+- (NSString *)getCurrntTime {
+    long long curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
+    return currntTime;
 }
 //获取帧率
 - (double)getFPS {
