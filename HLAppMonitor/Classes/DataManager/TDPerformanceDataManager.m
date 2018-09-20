@@ -118,8 +118,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 }
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
-    NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
+  //  NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
+    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
     // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
     if (fileNum == 1) {
         fileNum += 1;
@@ -160,8 +160,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 }
 //清空txt文件
 - (void)clearTxt {
-    NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
+   // NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
+    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     [handle truncateFileAtOffset:0];
