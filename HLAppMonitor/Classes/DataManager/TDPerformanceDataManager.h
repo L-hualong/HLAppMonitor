@@ -35,7 +35,7 @@
  */
 - (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime;
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
-- (void)recordDataIntervalTime: (NSInteger)intervaTime;
+- (void)startToCollectPerformanceData;
 //停止写入监控性能数据
 - (void)stopUploadResourceData;
 @end

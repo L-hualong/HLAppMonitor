@@ -112,7 +112,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     }] copy];
 }
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
-- (void)recordDataIntervalTime: (NSInteger)intervaTime {
+- (void)startToCollectPerformanceData {
     //默认数据设置60s上传文件间隔,1s获取基本性能数据间隔
     [[TDPerformanceDataManager sharedInstance]startRecordDataIntervalTime:60 withBasicTime:1];
 }
