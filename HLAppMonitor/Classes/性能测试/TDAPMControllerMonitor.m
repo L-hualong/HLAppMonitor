@@ -55,11 +55,13 @@ const char **tdClasses;
 }
 + (void)toHookAllMethod:(Class)cls {
     //[self toHookLoadView:cls];
-    [self toHookViewDidLoad:cls];
-    [self toHookViewWillAppear:cls];
-    [self toHookViewDidAppear:cls];
-    [self toHookViewWillDisappear:cls];
-    [self toHookViewDidDisappear:cls];
+    if (![cls isSubclassOfClass:[UINavigationController class]]){//将导航栏控制器剔除
+        [self toHookViewDidLoad:cls];
+        [self toHookViewWillAppear:cls];
+        [self toHookViewDidAppear:cls];
+        [self toHookViewWillDisappear:cls];
+        [self toHookViewDidDisappear:cls];
+    }
 }
 //hook控制器初始化方法
 + (void)toHookInitViewController:(Class)class {
