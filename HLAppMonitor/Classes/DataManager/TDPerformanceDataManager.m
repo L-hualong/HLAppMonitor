@@ -79,10 +79,10 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     [self getAppBaseInfo];
     //开启网络流量监控
     [NetworkEye addWithObserver:self];
-    //开启内存泄漏检测
-    self->leakEye = [[LeakEye alloc] init];
-    self->leakEye.delegate = self;
-    [self->leakEye open];
+//    //开启内存泄漏检测
+//    self->leakEye = [[LeakEye alloc] init];
+//    self->leakEye.delegate = self;
+//    [self->leakEye open];
     //开启奔溃检测
     [CrashEye addWithDelegate:self];
     //开启anrEye
