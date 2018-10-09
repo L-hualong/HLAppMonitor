@@ -69,6 +69,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
  */
 - (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime {
     self ->startTime = [self currentTime];
+    //监控主线程卡顿
+    
     //开启fps监控
     [[TDFPSMonitor sharedMonitor]startMonitoring];
     //开启fps检测
@@ -79,7 +81,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     [self getAppBaseInfo];
     //开启网络流量监控
     [NetworkEye addWithObserver:self];
-//    //开启内存泄漏检测
+    //开启内存泄漏检测,这个第三方有问题,会导致有的控制器viewDidLoad提前调用导致数据不准确
 //    self->leakEye = [[LeakEye alloc] init];
 //    self->leakEye.delegate = self;
 //    [self->leakEye open];
@@ -89,6 +91,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     self->anrEye = [[ANREye alloc] init];
     self->anrEye.delegate = self;
     [self->anrEye openWith:1];
+    
      //基本性能数据获取定时器
     [self startBasicResourceDataTime:basicTime];
    // [[TDFluencyStackMonitor sharedInstance]startWithThresholdTime:200];
@@ -111,6 +114,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
         });
     }] copy];
 }
+
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
 - (void)startToCollectPerformanceData {
     //默认数据设置60s上传文件间隔,1s获取基本性能数据间隔
@@ -118,7 +122,7 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 }
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
-  //  NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
+ //   NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
     NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
     // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
     if (fileNum == 1) {
@@ -134,7 +138,25 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     [handle closeFile];
     [self clearCache];
 }
-
+//结束写入数据
+- (void)endWriteData {
+    
+    if (!self.normalDataStr || [self.normalDataStr isEqualToString:@""]) {//如果为空值 或者为nil 就不做此操作
+        return;
+    }
+    //下面就一定有值
+      __weak typeof(self) weakSelf = self;
+    dispatch_async(td_log_IO_queue(), ^{
+        //将String写入文件
+        //结束时间
+        long long curt = [self currentTime];
+        NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+        [weakSelf getStringResourceDataTime:currntime withStartOrEndTime:currntime withIsStartTime:NO];
+        NSData *normalData = [weakSelf.normalDataStr dataUsingEncoding:NSUTF8StringEncoding];
+        [weakSelf writeToFileWith:normalData];
+        
+    });
+}
 - (void)normalDataStrAppendwith:(NSString*)str {
     dispatch_semaphore_t sema = dispatch_semaphore_create(1);
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
@@ -150,17 +172,9 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
     dispatch_semaphore_signal(sema);
 }
 
-//暂停数据缓存
-- (void)stopDataCache {
-    self.isStartCasch = NO;
-    [self clearCache];
-    if (td_resource_monitorData_callback_key == nil) { return; }
-    [TDGlobalTimer resignTimerCallbackWithKey: td_resource_recordDataIntervalTime_callback_key];
-    
-}
 //清空txt文件
 - (void)clearTxt {
-   // NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
+    //NSString * filePath = [self createFilePath];//
     NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
@@ -170,7 +184,6 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //清空缓存
 - (void)clearCache {
     self.normalDataStr = [[NSMutableString alloc] initWithString:@""];
-    [[TDPerformanceMonitor sharedInstance].backtraceLoggerArray removeAllObjects];
 }
 //获取app基本信息数据
 - (void)getAppBaseInfo {
@@ -234,12 +247,16 @@ static NSString * td_resource_monitorData_callback_key;
 }
 //停止监控基本数据获取
 - (void)stopResourceData {
+    self.isStartCasch = NO;
+    [self clearCache];
     if (td_resource_monitorData_callback_key == nil) { return; }
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
     td_resource_monitorData_callback_key = NULL;
 }
 //停止写入监控性能数据
 - (void)stopUploadResourceData {
+    //保证收集上数据都能写入沙盒中
+    [self endWriteData];
     [self stopResourceData];
     if (td_resource_recordDataIntervalTime_callback_key == nil) { return; }
     [TDGlobalTimer uploadResignTimerCallbackWithKey: td_resource_recordDataIntervalTime_callback_key];
@@ -364,7 +381,6 @@ static NSString * td_resource_monitorData_callback_key;
     return _normalDataStr;
 }
 #pragma mark - GodEyeDelegate
-
 //网络流量
 - (void)networkEyeDidCatchWith:(NSURLRequest *)request response:(NSURLResponse *)response data:(NSData *)data
 {

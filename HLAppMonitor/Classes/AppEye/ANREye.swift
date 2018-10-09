@@ -60,16 +60,16 @@ open class ANREye: NSObject {
         var all: String?
         self.pingThread?.start(threshold: threshold, handler: { [weak self] in
             
-            guard let sself = self else {
-                return
-            }
+//            guard let sself = self else {
+//                return
+//            }
             
             main = AppBacktrace.mainThread() 
              all = AppBacktrace.allThread()
-            sself.delegate?.anrEye?(anrEye: sself,
-                                    catchWithThreshold: threshold,
-                                    mainThreadBacktrace: main,
-                                    allThreadBacktrace: all)
+//            sself.delegate?.anrEye?(anrEye: sself,
+//                                    catchWithThreshold: threshold,
+//                                    mainThreadBacktrace: main,
+//                                    allThreadBacktrace: all)
         }, catonLengthhandler: { [weak self]  (startTime,endTime) in
             guard let sself = self else {
                 return
@@ -143,8 +143,7 @@ private class AppPingThread: Thread {
                 //发送信号量将semaphore的值+1，这个时候其他等待中的线程就会被唤醒执行（同等优先级下随机唤醒）
                 self.semaphore.signal()
             }
-            
-            Thread.sleep(forTimeInterval: self.threshold)
+            Thread.sleep(forTimeInterval:self.threshold )//
             if self.isMainThreadBlock  {
                 isCaton = true
                 self.handler?()
@@ -156,7 +155,7 @@ private class AppPingThread: Thread {
                 //如果是大于时间间隔就将时间回调出去
                 let endTime = self.currentTime()
                 let catonLengTime = endTime - startTime
-                if catonLengTime > Int64(self.threshold * 1000) {
+                if catonLengTime >= Int64(self.threshold * 1000) {
                     self.catonLengthhandler?(startTime,endTime)
                 }
                 

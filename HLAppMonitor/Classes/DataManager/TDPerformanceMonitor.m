@@ -27,6 +27,8 @@ static inline NSTimeInterval MachTimeToSeconds(uint64_t machTime) {
 }
 @implementation TDPerformanceMonitor
 {
+    //耗时间隔
+    double timeInterval;
     int timeoutCount;
     CFRunLoopObserverRef observer;
      NSMutableArray *_backtrace;
@@ -169,10 +171,12 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
     long long dTime = [[NSNumber numberWithDouble:time] longLongValue]; 
     return dTime;//[[NSDate date] timeIntervalSince1970] * 1000;
 }
-- (void)start
+//timeInterval 耗时间隔  已毫秒为单位
+- (void)startListeningTimeInterval:(double)timeInterval
 {
     if (observer)
         return;
+    self->timeInterval = timeInterval;
     // 创建信号用初始值创建一个信号量
     semaphore = dispatch_semaphore_create(0);
     /* 注册RunLoop状态观察,CFRunLoopObserver提供了一种通用的方法来在运行循环中的不同点处接收回调,每个运行循环观察者一次只能在一个运行循环中注册，尽管它可以添加到该运行循环内的多个运行循环模式中。
@@ -233,6 +237,7 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
   //并行队列
     dispatch_queue_t queue = dispatch_queue_create("TDPerformanceMonitorQueue", DISPATCH_QUEUE_CONCURRENT);
     //创建子线程监控
+  //  __weak typeof(self) weakSelf = self;
     dispatch_async(queue, ^{
          //子线程开启一个持续的loop用来进行监控
         while (YES)
@@ -249,18 +254,18 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
                     self->activity = 0;
                     return;
                 }
+                //RunLoop 即将触发 Source0 (非port) 回调。kCFRunLoopAfterWaiting, 即停止等待（被唤醒）
                 if (self->activity == kCFRunLoopBeforeSources || self->activity == kCFRunLoopAfterWaiting)
                 {
-                    if (++self->timeoutCount < 5)
+                    if (++self->timeoutCount < (self ->timeInterval / 50))
                         continue;
                     
 //                    TDLog(@"好像有点儿卡哦");
 //                      TDLOG_MAIN // 打印主线程调用栈， TDLOG 打印当前线程，TDLOG_ALL 打印所有线程
-                    [self recodeLogger];
-//                    TDLog(@"\n结束了--------");
-                     //[self logStack];
-//                    dump();
-                   
+                    if (self.delegate && [self.delegate respondsToSelector:@selector(performanceMonitorCatonInformation:withEndTime:withCatonStackInformation:)]) {
+                        NSString *threamData =  [TDBacktraceLogger td_backtraceOfMainThread];
+                        [self.delegate performanceMonitorCatonInformation:@"" withEndTime:@"" withCatonStackInformation:threamData];
+                    }
                 }
             }
             self->timeoutCount = 0;
@@ -280,9 +285,9 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
 //记录堆栈信息
 - (void)recodeLogger {
     //获取堆栈信息
-   NSString *threamData =  [TDBacktraceLogger td_backtraceOfAllThread];
-    [self.backtraceLoggerArray addObject:threamData];
-    NSLog(@"recodeLogger=%@",self.backtraceLoggerArray);
+   NSString *threamData =  [TDBacktraceLogger td_backtraceOfMainThread];
+//    [self.backtraceLoggerArray appendString:threamData];
+  //  NSLog(@"recodeLogger=%@",self.backtraceLoggerArray);
 }
 - (void)logStack{
     void* callstack[128];
@@ -347,12 +352,12 @@ void dump(void)
      }];
 }
 
-- (NSMutableArray *)backtraceLoggerArray {
-    if (_backtraceLoggerArray) {
-        return _backtraceLoggerArray;
-    }
-    _backtraceLoggerArray = [[NSMutableArray alloc]init];
-    return _backtraceLoggerArray;
-}
+//- (NSMutableString *)backtraceLoggerArray {
+//    if (_backtraceLoggerArray) {
+//        return _backtraceLoggerArray;
+//    }
+//    _backtraceLoggerArray = [[NSMutableString alloc]init];
+//    return _backtraceLoggerArray;
+//}
 
 @end

@@ -7,12 +7,15 @@
 //
 
 #import <Foundation/Foundation.h>
-
+@protocol TDPerformanceMonitorDelegate <NSObject>
+- (void)performanceMonitorCatonInformation:(NSString *)startTime withEndTime: (NSString *)endTime withCatonStackInformation: (NSString *)mainThreadBacktrace;
+@end
 @interface TDPerformanceMonitor : NSObject
-//堆栈信息
-@property(nonatomic ,strong)NSMutableArray *backtraceLoggerArray;
+@property(nonatomic,weak)id<TDPerformanceMonitorDelegate> delegate;
 + (instancetype)sharedInstance;
-- (void)start;
+
+//timeInterval 耗时间隔  已毫秒为单位
+- (void)startListeningTimeInterval:(double)timeInterval;
 - (void)stop;
 //获得 App 的 CPU占用率的方法：
 - (float)getCpuUsage;
