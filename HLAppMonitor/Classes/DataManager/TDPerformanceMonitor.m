@@ -18,13 +18,7 @@
 @interface TDPerformanceMonitor ()
 
 @end
-static uint64_t loadTime;
-static uint64_t applicationRespondedTime = -1;
-static mach_timebase_info_data_t timebaseInfo;
 
-static inline NSTimeInterval MachTimeToSeconds(uint64_t machTime) {
-    return ((machTime / 1e9) * timebaseInfo.numer) / timebaseInfo.denom;
-}
 @implementation TDPerformanceMonitor
 {
     //耗时间隔
@@ -35,25 +29,6 @@ static inline NSTimeInterval MachTimeToSeconds(uint64_t machTime) {
     @public
     dispatch_semaphore_t semaphore;
     CFRunLoopActivity activity;
-}
-/*
- 因为类的+ load方法在main函数执行之前调用，所以我们可以在+ load方法记录开始时间，同时监听UIApplicationDidFinishLaunchingNotification通知，收到通知时将时间相减作为应用启动时间，这样做有一个好处，不需要侵入到业务方的main函数去记录开始时间点。
- */
-+ (void)load {
-    loadTime = mach_absolute_time();
-    mach_timebase_info(&timebaseInfo);
-    @autoreleasepool {
-        __block id obs;
-        obs = [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidFinishLaunchingNotification
-                                                                object:nil queue:nil
-                                                            usingBlock:^(NSNotification *note) {
-                                                                dispatch_async(dispatch_get_main_queue(), ^{
-                                                                    applicationRespondedTime = mach_absolute_time();
-                                                                    NSLog(@"StartupMeasurer: it took %f seconds until the app could respond to user interaction.", MachTimeToSeconds(applicationRespondedTime - loadTime));
-                                                                });
-                                                                [[NSNotificationCenter defaultCenter] removeObserver:obs];
-                                                            }];
-    }
 }
 
 + (instancetype)sharedInstance
