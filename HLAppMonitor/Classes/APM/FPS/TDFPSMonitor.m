@@ -66,9 +66,9 @@
     if (!_isMonitoring) { return; }
     _isMonitoring = NO;
 //    [self.displayer removeFromSuperview];
-    [self.displayLink invalidate];
+   
     //暂停将之从RunLoop中移除即可：
-    [self.displayLink removeFromRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    [self.displayLink invalidate];
     self.displayLink = nil;
 //    self.displayer = nil;
 }

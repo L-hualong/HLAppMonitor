@@ -6,8 +6,8 @@
 //利用fps 监控主线程卡顿情况
 
 #import "TDFluencyStackMonitor.h"
-#import "../性能测试/Logger/TDBacktraceLogger.h"
-#import "../性能测试/TDWeakProxy.h"
+#import "../APM/Logger/TDBacktraceLogger.h"
+#import "../APM/TDWeakProxy.h"
 static BOOL td_is_monitoring = NO;
 static dispatch_semaphore_t td_semaphore;
 static int thresholdTimeCount = 100;

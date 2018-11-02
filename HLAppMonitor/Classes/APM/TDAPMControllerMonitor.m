@@ -46,21 +46,27 @@ const char **tdClasses;
                     if ([cls isSubclassOfClass:[UIViewController class]]) {
                         //                        NSLog(@"class:%@",cls);
                         
-                        [self toHookAllMethod:cls];
+                        [self toHookAllMethod:cls withClassName:className];
                     }
                 }
             }
         }
     }
 }
-+ (void)toHookAllMethod:(Class)cls {
-    //[self toHookLoadView:cls];
++ (void)toHookAllMethod:(Class)cls withClassName: (NSString *)className {
+    
+    NSString *classnName1 = @"TuanDaiV4.TDWBaseViewController";
+     NSString *classnName2 = @"TuanDaiV4.TDWTabBarController";
     if (![cls isSubclassOfClass:[UINavigationController class]]){//将导航栏控制器剔除
-        [self toHookViewDidLoad:cls];
-        [self toHookViewWillAppear:cls];
-        [self toHookViewDidAppear:cls];
-        [self toHookViewWillDisappear:cls];
-        [self toHookViewDidDisappear:cls];
+        if (![className isEqualToString:classnName1] && ![className isEqualToString:@"AAFatherViewController"] && ![className isEqualToString:classnName2]) {
+           // NSLog(@"------------------------");
+          //  [self toHookLoadView:cls];
+            [self toHookViewDidLoad:cls];
+            [self toHookViewWillAppear:cls];
+            [self toHookViewDidAppear:cls];
+            [self toHookViewWillDisappear:cls];
+            [self toHookViewDidDisappear:cls];
+        }
     }
 }
 //hook控制器初始化方法
@@ -89,7 +95,7 @@ const char **tdClasses;
     SEL swizzledSelector = [self swizzledSelectorForSelector:selector];
     
     void (^swizzledBlock)(UIViewController *) = ^(UIViewController *viewController) {
-        NSLog(@"loadViewddddd = %@",viewController);
+       // NSLog(@"loadViewddddd = %@",viewController);
         long long start = [self currentTime];
         if ([[[UIDevice currentDevice] systemVersion] doubleValue] >= 8) {
              ((void(*)(id, SEL))objc_msgSend)(viewController, swizzledSelector);
@@ -99,7 +105,7 @@ const char **tdClasses;
         }
         long long end = [self currentTime];
 
-        NSLog(@"loadView = %@",viewController);
+       // NSLog(@"loadView = %@",viewController);
         NSString *className = [[NSString alloc]initWithUTF8String:class_getName(class)];
         NSString *uniqueIdentifier = [NSString stringWithFormat:@"%@%lud",className,(unsigned long)viewController.hash];
         [[TDPerformanceDataManager sharedInstance] asyncExecuteClassName:className withStartTime:[NSString stringWithFormat:@"%lld",start] withEndTime:[NSString stringWithFormat:@"%lld",end] withHookMethod:@"loadView" withUniqueIdentifier: uniqueIdentifier];
@@ -145,7 +151,6 @@ const char **tdClasses;
     };
     [self replaceImplementationOfKnownSelector:originalSelector onClass:class withBlock:swizzleBlock swizzledSelector:swizzledSelector];
 }
-
 + (void)toHookViewDidAppear:(Class)class {
     SEL originalSelector = @selector(viewDidAppear:);
     SEL swizzledSelector = [self swizzledSelectorForSelector:originalSelector];

@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#import "TDNetFlowDataSource.h"
 NS_ASSUME_NONNULL_BEGIN
 //网络请求类型
 typedef enum: NSInteger {

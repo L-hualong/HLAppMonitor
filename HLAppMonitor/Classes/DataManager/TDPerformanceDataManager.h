@@ -8,10 +8,17 @@
 
 #import <Foundation/Foundation.h>
 
+//监控指标
+typedef enum _TDMonitoringIndicators
+{
+    _TDMonitoringIndicatorsALL = 1,//所有的
+    _TDMonitoringIndicatorsBase = 2,//基本性能数据
+    _TDMonitoringIndicatorsFPS = 3,//帧率FPS
+    _TDMonitoringIndicatorsNetwork = 4,//网络
+    _TDMonitoringIndicatorsCaton = 5,//卡顿
+    _TDMonitoringIndicatorsCrash = 6,//崩溃
+} TDMonitoringIndicators;
 @interface TDPerformanceDataManager : NSObject
-
-//是否开始缓存
-@property(nonatomic,assign)BOOL isStartCasch;
 
 //计数
 //@property(nonatomic,assign)NSInteger logNum;
@@ -38,4 +45,12 @@
 - (void)startToCollectPerformanceData;
 //停止写入监控性能数据
 - (void)stopUploadResourceData;
+//停止监控性能
+- (void)stopAppPerformanceMonitor;
+//改变监控指标状态 Indicators:监控指标,isStartMonitor:监控是否开启与关闭
+- (void)didChangeMonitoringIndicators: (TDMonitoringIndicators)Indicators withChangeStatus:(BOOL)isStartMonitor;
+//清空txt文件
+- (void)clearTxt;
+//写入沙盒
+- (void)writeSandbox;
 @end

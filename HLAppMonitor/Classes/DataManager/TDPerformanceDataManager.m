@@ -17,7 +17,11 @@
 #import <mach/mach.h>
 #import <mach/task_info.h>
 #import "TDNetworkTrafficManager.h"
-@interface TDPerformanceDataManager () <NetworkEyeDelegate,LeakEyeDelegate,CrashEyeDelegate,ANREyeDelegate,TDFPSMonitorDelegate>
+#import <objc/runtime.h>
+#import "SignalHandler.h"
+#import "UncaughtExceptionHandler.h"
+//#import "性能测试/Network/TDNetFlowDataSource.h"
+@interface TDPerformanceDataManager () <LeakEyeDelegate,CrashEyeDelegate,ANREyeDelegate,TDFPSMonitorDelegate>
 {
     LeakEye *leakEye;
     ANREye *anrEye;
@@ -27,7 +31,26 @@
     NSTimeInterval appStartupTime;
 
 }
-
+//是否开始监控
+@property(nonatomic,assign)BOOL isStartMonitor;
+//是否正在监控
+@property(nonatomic,assign)BOOL isMonitoring;
+//是否开始缓存
+@property(nonatomic,assign)BOOL isStartCasch;
+//是否开启基本性能监控
+@property(nonatomic,assign)BOOL isStartBaseMonitor;
+//是否开始帧率监控
+@property(nonatomic,assign)BOOL isStartFPSMonitor;
+//是否开始网络监控
+@property(nonatomic,assign)BOOL isStartNetworkMonitor;
+//是否开启卡顿监控
+@property(nonatomic,assign)BOOL isStartCatonMonitor;
+//是开启崩溃监控
+@property(nonatomic,assign)BOOL isStartCrashMonitor;
+//基本性能数据定时器间隔
+@property(nonatomic,assign)NSInteger basicTime;
+//上传文件的间隔
+@property(nonatomic,assign)NSInteger intervaTime;
 @end
 static uint64_t loadTime;
 static uint64_t applicationRespondedTime = -1;
@@ -35,8 +58,7 @@ static mach_timebase_info_data_t timebaseInfo;
 static inline NSTimeInterval MachTimeToSeconds(uint64_t machTime) {
     return ((machTime / 1e9) * timebaseInfo.numer) / timebaseInfo.denom;
 }
-static long logNum = 1;
-static long fileNum = 1;
+static long long logNum = 1;
 
 @implementation TDPerformanceDataManager
 
@@ -54,7 +76,6 @@ static inline dispatch_queue_t td_log_IO_queue() {
 + (void)load {
     loadTime = mach_absolute_time();
     mach_timebase_info(&timebaseInfo);
-  //  __weak typeof(self) weakSelf = self;
     @autoreleasepool {
         __block id obs;
         obs = [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidFinishLaunchingNotification
@@ -63,7 +84,7 @@ static inline dispatch_queue_t td_log_IO_queue() {
                                                                 dispatch_async(dispatch_get_main_queue(), ^{
                                                                     
                                                                     applicationRespondedTime = mach_absolute_time();
-                                                                    NSLog(@"StartupMeasurer: it took %f seconds until the app could respond to user interaction.", MachTimeToSeconds(applicationRespondedTime - loadTime));
+//                                                                    NSLog(@"StartupMeasurer: it took %f seconds until the app could respond to user interaction.", MachTimeToSeconds(applicationRespondedTime - loadTime));
                                                                     NSString *appStartupTime =  [[TDPerformanceDataManager sharedInstance] getStringAppStartupTime:MachTimeToSeconds(applicationRespondedTime - loadTime)];
                                                                     [[TDPerformanceDataManager sharedInstance] normalDataStrAppendwith:appStartupTime];
                                                                 });
@@ -94,44 +115,162 @@ static inline dispatch_queue_t td_log_IO_queue() {
 }
 static NSString * td_resource_recordDataIntervalTime_callback_key;
 
+//开启监控总开关
+- (void)setIsStartMonitor:(BOOL)isStartMonitor {
+    _isStartMonitor = isStartMonitor;
+    if (isStartMonitor) {
+        [self startRecordDataIntervalTime:60 withBasicTime:1];
+    }else{
+        [self stopAppPerformanceMonitor];
+    }
+}
+//基本性能数据
+- (void)setIsStartBaseMonitor:(BOOL)isStartBaseMonitor {
+    
+    _isStartBaseMonitor = isStartBaseMonitor;
+    if (isStartBaseMonitor) {
+        if (self.basicTime > 0) {
+             [self startBasicResourceDataTime: self.basicTime];
+        }else{
+             [self startBasicResourceDataTime: 1];
+        }
+    }else{
+        [self stopResourceData];
+    }
+}
+//帧率fps
+- (void)setIsStartFPSMonitor:(BOOL)isStartFPSMonitor {
+    
+    _isStartFPSMonitor = isStartFPSMonitor;
+    if (isStartFPSMonitor) {
+        //开启fps监控
+        [[TDFPSMonitor sharedMonitor]startMonitoring];
+        //开启fps检测
+        [TDFPSMonitor sharedMonitor].delegate = self;
+    }else{
+        //开启fps监控
+        [[TDFPSMonitor sharedMonitor]stopMonitoring];
+        //开启fps检测
+        [TDFPSMonitor sharedMonitor].delegate = nil;
+    }
+}
+//网络
+- (void)setIsStartNetworkMonitor:(BOOL)isStartNetworkMonitor {
+    
+    _isStartNetworkMonitor = isStartNetworkMonitor;
+    if (isStartNetworkMonitor) {
+        //开启网络流量监控
+        //开启网络监控
+        [TDNetworkTrafficManager start];
+    }else{
+        //暂停网络流量监控
+        //暂停网络监控
+        [TDNetworkTrafficManager end];
+    }
+}
+//卡顿
+- (void)setIsStartCatonMonitor:(BOOL)isStartCatonMonitor {
+    
+    _isStartCatonMonitor = isStartCatonMonitor;
+    if (isStartCatonMonitor) {
+        if (self->anrEye == nil) {
+             self->anrEye = [[ANREye alloc] init];
+        }
+        //开启anrEye
+        self->anrEye.delegate = self;
+        [self->anrEye openWith:1];
+    }else{
+        if (self ->anrEye) {
+            self->anrEye.delegate = nil;
+            [self->anrEye close];
+        }
+    }
+}
+//崩溃
+- (void)setIsStartCrashMonitor:(BOOL)isStartCrashMonitor {
+    
+    _isStartCrashMonitor = isStartCrashMonitor;
+    if (isStartCrashMonitor) {
+        //开启奔溃检测
+        [CrashEye addWithDelegate:self];
+    }else{
+        //移除奔溃检测
+        [CrashEye removeWithDelegate:self];
+    }
+}
+
+//改变监控指标状态 Indicators:监控指标,isStartMonitor:监控是否开启与关闭
+- (void)didChangeMonitoringIndicators: (TDMonitoringIndicators)Indicators withChangeStatus:(BOOL)isStartMonitor {
+    
+    switch (Indicators) {
+        case _TDMonitoringIndicatorsALL://所有的
+            self.isStartMonitor = isStartMonitor;
+            break;
+        case _TDMonitoringIndicatorsBase://基本性能数据
+            self.isStartBaseMonitor = isStartMonitor;
+            break;
+        case _TDMonitoringIndicatorsFPS://帧率FPS
+            self.isStartFPSMonitor = isStartMonitor;
+            break;
+        case _TDMonitoringIndicatorsNetwork://网络
+            self.isStartNetworkMonitor = isStartMonitor;
+            break;
+        case _TDMonitoringIndicatorsCaton://卡顿
+            self.isStartCatonMonitor = isStartMonitor;
+            break;
+        case _TDMonitoringIndicatorsCrash://崩溃
+            self.isStartCrashMonitor = isStartMonitor;
+            break;
+        default:
+            break;
+    }
+}
 /**
  定时将数据字符串写入沙盒文件
 
  @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
  */
 - (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime {
-    self ->startTime = [self currentTime];
-    //监控主线程卡顿
-    
-    //开启fps监控
-    [[TDFPSMonitor sharedMonitor]startMonitoring];
-    //开启fps检测
-    [TDFPSMonitor sharedMonitor].delegate = self;
+     //如果有监控 就不用往下走了
+    if (self.isMonitoring) {//如果正在监控  就不用了
+        return;
+    }
+    self.isMonitoring = YES;
+   //开启监控
+    if (!self.isStartMonitor) {//是否开始监控
+        return;
+    }
+    //记录基本性能数据定时器间隔
+    if (basicTime > 0) {
+        self.basicTime = basicTime;
+    }else{
+        self.basicTime = 1;
+    }
+    //记录写入沙盒数据定时器时间间隔
+    if (intervaTime > 0) {
+        self.intervaTime = intervaTime;
+    }else{
+        self.intervaTime = 60;
+    }
+    //开始缓存机制
     self.isStartCasch = YES;
-    [self clearTxt];
-    //第一次先记录APP基础信息
+    //记录开始时间
+    self ->startTime = [self currentTime];
+    //获取APP基本性能数据
     [self getAppBaseInfo];
-    //开启网络流量监控
-    [NetworkEye addWithObserver:self];
-    //开启网络监控
-    [TDNetworkTrafficManager start];
-    //开启内存泄漏检测,这个第三方有问题,会导致有的控制器viewDidLoad提前调用导致数据不准确
-//    self->leakEye = [[LeakEye alloc] init];
-//    self->leakEye.delegate = self;
-//    [self->leakEye open];
-    //开启奔溃检测
-    [CrashEye addWithDelegate:self];
-    //开启anrEye
-    self->anrEye = [[ANREye alloc] init];
-    self->anrEye.delegate = self;
-    [self->anrEye openWith:1];
-    
-     //基本性能数据获取定时器
-    [self startBasicResourceDataTime:basicTime];
-   // [[TDFluencyStackMonitor sharedInstance]startWithThresholdTime:200];
+    //开启基本性能数据 //基本性能数据获取定时器 
+    self.isStartBaseMonitor = YES;
+    //开启帧率FPS监控
+    self.isStartFPSMonitor = YES;
+    //网络 开启网络流量监控
+    self.isStartNetworkMonitor = YES;
+    //卡顿//开启anrEye
+    self.isStartCatonMonitor = YES;
+    //崩溃开启奔溃检测
+    self.isStartCrashMonitor = YES;
     if (td_resource_recordDataIntervalTime_callback_key != nil) {return;}
     //设置定时器间隔
-    [TDGlobalTimer setUploadCallbackInterval:intervaTime];
+    [TDGlobalTimer setUploadCallbackInterval:self.intervaTime];
     //监听数据
     __weak typeof(self) weakSelf = self;
     td_resource_recordDataIntervalTime_callback_key = [[TDGlobalTimer uploadRegisterTimerCallback: ^{
@@ -152,19 +291,19 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
 - (void)startToCollectPerformanceData {
     //默认数据设置60s上传文件间隔,1s获取基本性能数据间隔
+    self.isStartMonitor = YES;
     [[TDPerformanceDataManager sharedInstance]startRecordDataIntervalTime:60 withBasicTime:1];
 }
 // 文件写入操作
-- (void)writeToFileWith:(NSData *)data {
-   // NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
-    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
-    // NSString *fileDicPath = [NSString stringWithFormat:@"/Users/mobileserver/Desktop/applog.txt"];
-    if (fileNum == 1) {
-        fileNum += 1;
-        [[NSData new] writeToFile:fileDicPath atomically:YES];
-    }
+- (void)writeToFileWith:(NSData *)data {//cd/Users/apple/Desktop/performanceData/applog
+    NSString * filePath = [self createFilePath];//@"/Users/mobileserver/Desktop/performanceData/applog"
+    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
+    if (handle == nil) {
+         [[NSData new] writeToFile:fileDicPath atomically:YES];
+         handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
+    }
     //找到并定位到outFile的末尾位置(在此后追加文件)
     [handle seekToEndOfFile];
     [handle writeData:data];
@@ -191,25 +330,26 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
         
     });
 }
+//拼接数据
 - (void)normalDataStrAppendwith:(NSString*)str {
-    dispatch_semaphore_t sema = dispatch_semaphore_create(1);
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-    [self.normalDataStr appendString:str];
-    dispatch_semaphore_signal(sema);
+    if (str) {
+         [self.normalDataStr appendString:str];
+    }
 }
 
 //logNum加1
 - (void)logNumAddOne {
-    dispatch_semaphore_t sema = dispatch_semaphore_create(1);
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
     logNum += 1;
-    dispatch_semaphore_signal(sema);
 }
-
+//写入沙盒
+- (void)writeSandbox {
+    [self endWriteData];
+}
 //清空txt文件
 - (void)clearTxt {
-    //NSString * filePath = [self createFilePath];//@"
-    NSString *fileDicPath = [@"/Users/mobileserver/Desktop/performanceData/applog" stringByAppendingPathComponent:@"appLogIOS.txt"];
+    logNum = 1;
+    NSString * filePath = [self createFilePath];//@"
+    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     [handle truncateFileAtOffset:0];
@@ -218,27 +358,43 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //清空缓存
 - (void)clearCache {
     self.normalDataStr = [[NSMutableString alloc] initWithString:@""];
+    //清空流量
+  //  [[TDNetFlowDataSource shareInstance] clear];
 }
 //获取app基本信息数据
 - (void)getAppBaseInfo {
-    if (logNum != 1) {
-        return;
+    // 获取CPU架构
+    NSString * cpu = [TDPerformanceMonitor getCPUFramwork];
+    if (!cpu || [cpu isKindOfClass:[NSNull class]] || cpu == NULL || !cpu.length) {
+        cpu = @"Unkonwn";
     }
-    NSString * bid = [[NSBundle mainBundle]bundleIdentifier];
-    NSString * appName = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleDisplayName"];
-    NSString * appVersion = [[[NSBundle mainBundle]infoDictionary] objectForKey:@"CFBundleShortVersionString"];
-    NSString * deviceVersion = [UIDevice currentDevice].systemVersion;
-    NSString * deviceName = [UIDevice currentDevice].systemName;
+    //app Bundel ID
+    NSString * bundelID = [TDPerformanceMonitor appBundleIdentifier];
+    //app 版本号
+    NSString * versionName = [TDPerformanceMonitor appVersion];
+    //app 构建版本号
+    NSString * appVersion = [TDPerformanceMonitor appBuildVersion];
+    // app name
+    NSString * appName = [TDPerformanceMonitor appName];
+    //设备Id
+    NSString * deviceId = [TDPerformanceMonitor deviceId];
+    //手机型号
+    NSString * deviceModel = [TDPerformanceMonitor deviceModel];
+    //系统版本
+    NSString * deviceVersion = [TDPerformanceMonitor systemVersion];
     //开始监控时间传给gt,一开始取出时间
     NSString *currntime = [NSString stringWithFormat:@"%lld",self ->startTime];
-    NSString * appInfo = [self getStringAppBaseDataTime:currntime withBundleId:bid withAppName:appName withAppVersion:appVersion withDeviceVersion:deviceVersion withDeviceName:deviceName];
+    
+//    NSString * appInfo = [self getStringAppBaseDataTime:currntime withBundleId:bundelID withAppName:appName withAppVersion:appVersion withDeviceVersion:deviceVersion withDeviceName:deviceModel];
+    // 1,时间 2,bundelID 3,appName,4,app 版本号,5系统版本 6,手机型号 7 app 构建版本号 8,设备Id 9 cpu
+    NSString * appInfo = [self getStringAppBaseDataTime:currntime withBundleId:bundelID withAppName:appName withAppVersion:versionName withDeviceVersion:deviceVersion withDeviceName:deviceModel withVersionName:appVersion withDeviceId:deviceId withCpu:cpu];
     [self normalDataStrAppendwith:appInfo];
 }
 
 //获取app基本性能数据
 static NSString * td_resource_monitorData_callback_key;
 - (void)startBasicResourceDataTime:(NSInteger)intervaTime {
-    if (!self.isStartCasch) {
+    if (!self.isStartBaseMonitor) {
         return;
     }
     if (td_resource_monitorData_callback_key != nil) { return; }
@@ -247,42 +403,37 @@ static NSString * td_resource_monitorData_callback_key;
     [TDGlobalTimer setCallbackInterval:intervaTime];
   __weak typeof(self) weakSelf = self;
     
-  td_resource_monitorData_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
-    long long curt = [self currentTime];
-    NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
-      //fps
-    double fps = [[TDFPSMonitor sharedMonitor] getFPS];
-    NSString *fpsStr = [NSString stringWithFormat:@"%d",(int)fps];
-    //内存
-    double appRam = [[Memory applicationUsage][0] doubleValue];
-    NSString *appRamStr = [NSString stringWithFormat:@"%.1f",appRam];
-    double activeRam = [[Memory systemUsage][1] doubleValue];
-    double inactiveRam = [[Memory systemUsage][2] doubleValue];
-    double wiredRam = [[Memory systemUsage][3] doubleValue];
-    double totleSysRam = [[Memory systemUsage][5] doubleValue];
-    double sysRamPercent = ((activeRam + inactiveRam + wiredRam)/totleSysRam) *100;
-    NSString *sysRamPercentStr = [NSString stringWithFormat:@"%.1f",sysRamPercent];
-    //CPU
-    double appCpu = [CPU applicationUsage];
-    NSString *appCpuStr = [NSString stringWithFormat:@"%.1f",appCpu];
-    NSString *sysCpu = [CPU systemUsage][0];
-    NSString *userCpu = [CPU systemUsage][1];
-    NSString *niceCpu = [CPU systemUsage][3] ;
-    double systemCpu = sysCpu.doubleValue + userCpu.doubleValue + niceCpu.doubleValue;
-    NSString *systemCpuStr = [NSString stringWithFormat:@"%.1f",systemCpu];
-    __block NSString *appNetReceivedStr = @"0.0";
-      //流量
-    [Store.shared networkByteDidChangeWithChange:^(double byte) {
-        appNetReceivedStr = [NSString stringWithFormat:@"%.1f",byte/1024];
-    }];
-    NSString *normS = [weakSelf getStringResourceDataTime:currntime withFPS:fpsStr withAppRam:appRamStr withSysRam:sysRamPercentStr withAppCpu:appCpuStr withSysCpu:systemCpuStr withAppNetReceived:appNetReceivedStr];
-    [self normalDataStrAppendwith:normS];
-   }] copy];
+    td_resource_monitorData_callback_key = [[TDGlobalTimer registerTimerCallback: ^{
+        NSString *currntime = [self getCurrntTime];
+        //fps
+        double fps = [[TDFPSMonitor sharedMonitor] getFPS];
+        NSString *fpsStr = [NSString stringWithFormat:@"%d",(int)fps];
+        //内存,当前任务使用内存
+        double appRam = [[Memory applicationUsage][0] doubleValue];
+        NSString *appRamStr = [NSString stringWithFormat:@"%f",appRam];
+        double activeRam = [[Memory systemUsage][1] doubleValue];
+        double inactiveRam = [[Memory systemUsage][2] doubleValue];
+        double wiredRam = [[Memory systemUsage][3] doubleValue];
+        double totleSysRam = [[Memory systemUsage][5] doubleValue];
+        //使用内存 含100%
+        double sysRamPercent = ((activeRam + inactiveRam + wiredRam)/totleSysRam) *100;
+        NSString *sysRamPercentStr = [NSString stringWithFormat:@"%.1f",sysRamPercent];
+        //CPU
+        double appCpu = [CPU applicationUsage];//[[TDPerformanceMonitor sharedInstance] getCpuUsage]
+        NSString *appCpuStr = [NSString stringWithFormat:@"%.1f",appCpu];
+        NSString *sysCpu = [CPU systemUsage][0];
+        NSString *userCpu = [CPU systemUsage][1];
+        NSString *niceCpu = [CPU systemUsage][3] ;
+        double systemCpu = sysCpu.doubleValue + userCpu.doubleValue + niceCpu.doubleValue;
+        NSString *systemCpuStr = [NSString stringWithFormat:@"%.1f",systemCpu];
+      
+        NSString *normS = [weakSelf getStringResourceDataTime:currntime withFPS:fpsStr withAppRam:appRamStr withSysRam:sysRamPercentStr withAppCpu:appCpuStr withSysCpu:systemCpuStr];
+        [self normalDataStrAppendwith:normS];
+    }] copy];
 }
 //停止监控基本数据获取
 - (void)stopResourceData {
-    self.isStartCasch = NO;
-    [self clearCache];
+    //[self clearCache];
     if (td_resource_monitorData_callback_key == nil) { return; }
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
     td_resource_monitorData_callback_key = NULL;
@@ -291,6 +442,13 @@ static NSString * td_resource_monitorData_callback_key;
 - (void)stopUploadResourceData {
     //保证收集上数据都能写入沙盒中
     [self endWriteData];
+    if (!self.isMonitoring) {//表示并没有监控  
+        return;
+    }
+    self.isMonitoring = NO;
+    if (self.isStartMonitor) {
+        return;
+    }
     self.isStartCasch = NO;
     if (td_resource_monitorData_callback_key == nil) { return; }
     [TDGlobalTimer resignTimerCallbackWithKey: td_resource_monitorData_callback_key];
@@ -299,8 +457,27 @@ static NSString * td_resource_monitorData_callback_key;
     [TDGlobalTimer uploadResignTimerCallbackWithKey: td_resource_recordDataIntervalTime_callback_key];
      td_resource_recordDataIntervalTime_callback_key = NULL;
 }
+//停止监控性能
+- (void)stopAppPerformanceMonitor {
+    [self stopUploadResourceData];
+
+    //暂停基本性能数据监控
+    self.isStartBaseMonitor = NO;
+    //暂停fps数据监控
+    self.isStartFPSMonitor = NO;
+    //暂停网络监控
+    self.isStartNetworkMonitor = NO;
+    //暂停卡顿监控
+    self.isStartCatonMonitor = NO;
+    //暂停崩溃监控
+    self.isStartCrashMonitor = NO;
+}
+
 ////拼接开始或结束时间 startEndTime: 开始或结束时间 ,isStartTime是否开始还是结束时间
 - (void)getStringResourceDataTime:(NSString *)currntTime withStartOrEndTime:(NSString *)startEndTime withIsStartTime:(BOOL) isStartTime {
+    if (!self.isStartCasch) {//有需要缓存才缓存
+        return;
+    }
     if (isStartTime) {
         //将开始时间拼接在这里
         NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^startResourceDataTime", logNum,currntTime];
@@ -329,42 +506,55 @@ static NSString * td_resource_monitorData_callback_key;
     __weak typeof(self) weakSelf = self;
     [self asyncExecute:^{
        // NSLog(@"className=%@---hookMethod=%@",uniqueIdentifier,hookMethod);
-        long long curt = [self currentTime];
-        NSString *currntime = [NSString stringWithFormat:@"%lld",curt];
+        NSString *currntime = [self getCurrntTime];
         NSString *hookS = [weakSelf getStringExecuteTime:currntime withClassName:className withStartTime:startTime withEndTime:endTime withHookMethod:hookMethod  withUniqueIdentifier: uniqueIdentifier];
         [weakSelf normalDataStrAppendwith:hookS];
     }];
 }
-//app基本性能数据
-- (NSString *)getStringResourceDataTime:(NSString *)currntTime withFPS:(NSString *)fps withAppRam:(NSString *)appRam withSysRam:(NSString *)sysRam withAppCpu:(NSString *)appCpu withSysCpu:(NSString *)sysCpu
-    withAppNetReceived:(NSString *)appNetReceived{
+//app基本性能数据   //1,当前时间,2,fps  3,当前任务使用内存,4,使用内存,5,当前使用CPU,6 使用cpu
+- (NSString *)getStringResourceDataTime:(NSString *)currntTime withFPS:(NSString *)fps withAppRam:(NSString *)appRam withSysRam:(NSString *)sysRam withAppCpu:(NSString *)appCpu withSysCpu:(NSString *)sysCpu {
+    if (!self.isStartCasch) {
+        return nil;
+    }
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^normalCollect", logNum,currntTime];
     @synchronized (self) {
         [self logNumAddOne];
-        [att appendFormat:@"^%@",appCpu]; //百分比
-        [att appendFormat:@"^%@",sysCpu]; //百分比
-        [att appendFormat:@"^%@",appRam]; //Byte
-        [att appendFormat:@"^%@",sysRam]; //百分比
-        [att appendFormat:@"^%@",fps];
-        [att appendFormat:@"^%@",appNetReceived]; //KB
+        [att appendFormat:@"^%@",appCpu]; //百分比  当前使用CPU
+        [att appendFormat:@"^%@",sysCpu]; //百分比  使用cpu
+        [att appendFormat:@"^%@",appRam]; //Byte  当前任务使用内存
+        [att appendFormat:@"^%@",sysRam]; //百分比 使用内存
+        long long uploadFlow = [TDNetFlowDataSource shareInstance].uploadFlow;
+        long long downFlow = [TDNetFlowDataSource shareInstance].downFlow;
+        //清空
+      //  [[TDNetFlowDataSource shareInstance] clear];
+        
+        [att appendFormat:@"^%lld",uploadFlow];//上行流量
+        [att appendFormat:@"^%lld",downFlow]; //下行流量
         [att appendFormat:@"^%@",@"\n"];
+       
     }
     return att.copy;
     
 }
-//app基本信息数据
-- (NSString *)getStringAppBaseDataTime:(NSString *)currntTime withBundleId:(NSString *)bid
+//app基本信息数据/// 1,时间 2,bundelID 3,appName,4,app 版本号,5系统版本 6,手机型号 7 app 构建版本号 8,设备Id 9 cpu
+- (NSString *)getStringAppBaseDataTime:(NSString *)currntTime withBundleId:(NSString *)bunldID
                            withAppName:(NSString *)appName withAppVersion:(NSString *)appVersion
-                           withDeviceVersion:(NSString *)deviceVersion withDeviceName:(NSString *)deviceName{
+                     withDeviceVersion:(NSString *)deviceVersion withDeviceName:(NSString *)deviceName withVersionName:(NSString *)versionName withDeviceId:(NSString *)deviceId withCpu:(NSString *)cpu{
+    if (!self.isStartCasch) {
+        return nil;
+    }
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^appCollect", logNum,currntTime];
+    
     @synchronized (self) {
         [self logNumAddOne];
-        [att appendFormat:@"^%@",bid];
-        [att appendFormat:@"^%@",appName];
-        [att appendFormat:@"^%@",appVersion];
-        [att appendFormat:@"^%@",deviceVersion];
-        [att appendFormat:@"^%@",deviceName];
-        [att appendFormat:@"^100"];
+        [att appendFormat:@"^%@",bunldID];//bunldID
+        [att appendFormat:@"^%@",appName];//项目名4appName
+        [att appendFormat:@"^%@",appVersion];//版本号
+        [att appendFormat:@"^%@",deviceVersion];// 系统版本
+        [att appendFormat:@"^%@",deviceName];//手机型号
+        [att appendFormat:@"^%@",versionName];//app 构建版本号
+        [att appendFormat:@"^%@",deviceId];// 设备Id
+        [att appendFormat:@"^%@",cpu];//cpu
         [att appendFormat:@"^%@",@"\n"];
     }
     return att.copy;
@@ -372,7 +562,9 @@ static NSString * td_resource_monitorData_callback_key;
 }
 //app启动时间
 - (NSString *)getStringAppStartupTime:(NSTimeInterval)appStartupTime {
-    
+    if (!self.isStartCasch) {
+        return nil;
+    }
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^1000^appStartupTime", logNum];
     @synchronized (self) {
         [self logNumAddOne];
@@ -384,6 +576,9 @@ static NSString * td_resource_monitorData_callback_key;
 }
 //页面生命周期方法,uniqueIdentifier:页面唯一标识
 - (NSString *)getStringExecuteTime:(NSString *)currntTime withClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier{
+    if (!self.isStartCasch) {
+        return nil;
+    }
     NSMutableString *hookSt = [[NSMutableString alloc]initWithFormat:@"%ld^%@^%@", logNum,currntTime,hookMethod];
     @synchronized (self) {
         [self logNumAddOne];
@@ -392,6 +587,7 @@ static NSString * td_resource_monitorData_callback_key;
         [hookSt appendFormat:@"^%@",startTime];
         [hookSt appendFormat:@"^%@",endTime];
         [hookSt appendFormat:@"^%@",@"\n"];
+        //NSLog(@"%@",hookSt);
     }
     return hookSt.copy;
 }
@@ -407,6 +603,38 @@ static NSString * td_resource_monitorData_callback_key;
         [renderStr appendFormat:@"^%@",@"\n"];
     }
     return renderStr.copy;
+}
+//app流量数据
+- (NSString *)getStringAppTrafficDataInformation {
+    
+//    NSArray <TDNetworkTrafficLog *> *httpArray = [TDNetFlowDataSource shareInstance].httpModelArray;
+//    if (!httpArray || httpArray.count <= 0 ) {
+//        return nil;
+//    }
+    NSMutableString *att1 = [[NSMutableString alloc]init];
+    @synchronized (self) {
+//        for (TDNetworkTrafficLog *model in httpArray) {
+//            NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^1000^AppTrafficDataInformation", logNum];
+//            [self logNumAddOne];
+//            [att appendFormat:@"^%ld",(long)model.type]; //上行流量还是下行流量,0表示请求/上行流量,1表示接受/下行流量
+//            [att appendFormat:@"^%@",model.host];
+//            [att appendFormat:@"^%@",model.path];
+//        
+//            [att appendFormat:@"^%ld",(long)model.headerLength];
+//            [att appendFormat:@"^%ld",(long)model.lineLength];
+//            [att appendFormat:@"^%ld",(long)model.bodyLength];
+//            [att appendFormat:@"^%ld",(long)model.length];
+//    
+//            [att appendFormat:@"^%@",model.occurTime];//开始时间
+//            [att appendFormat:@"^%@",model.startTime];//开始时间
+//            [att appendFormat:@"^%@",model.endTime];//结束时间
+//            [att appendFormat:@"^%@",@"\n"];
+//            [att1 appendString:att];
+//        }
+//        //清空数组
+//        [[TDNetFlowDataSource shareInstance] clear];
+    }
+    return att1.copy;
 }
 - (void)asyncExecute: (dispatch_block_t)block {
     assert(block != nil);
@@ -424,17 +652,12 @@ static NSString * td_resource_monitorData_callback_key;
     return _normalDataStr;
 }
 #pragma mark - GodEyeDelegate
-//网络流量
-- (void)networkEyeDidCatchWith:(NSURLRequest *)request response:(NSURLResponse *)response data:(NSData *)data
-{
-    if (response != nil) {
-        [Store.shared addNetworkByte:response.expectedContentLength];
-    }
-
-}
 //检测到内存泄漏
 -(void)leakEye:(LeakEye *)leakEye didCatchLeak:(NSObject *)object
 {
+    if (!self.isStartCasch) {
+        return;
+    }
     long long curt = [self currentTime];
     NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^leakCollect",logNum,currntTime];
@@ -450,8 +673,16 @@ static NSString * td_resource_monitorData_callback_key;
 //检测到crash
 - (void)crashEyeDidCatchCrashWith:(CrashModel *)model
 {
+    if (!self.isStartCasch) {
+        return;
+    }
     NSString *str = [self getCrashInfoWithModel:model];
+    //直接写入沙盒去,不能切换线程
     [self normalDataStrAppendwith:str];
+    NSString *currntime = [self getCurrntTime];
+    [self getStringResourceDataTime:currntime withStartOrEndTime:currntime withIsStartTime:NO];
+    NSData *normalData = [self.normalDataStr dataUsingEncoding:NSUTF8StringEncoding];
+    [self writeToFileWith:normalData];
 }
 
 //app的crash数据
@@ -459,19 +690,17 @@ static NSString * td_resource_monitorData_callback_key;
     
     NSString *type = model.type;
     NSString *name = model.name;
-    NSString *reason = model.reason;
-    NSString *appinfo = model.appinfo;
-    NSString *callStack = model.callStack;
-    
-    long long curt = [self currentTime];
-    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
+    NSString *reason = model.reason;//[model.reason stringByReplacingOccurrencesOfString:@"\n" withString:@"#&####"];//
+    //NSString *appinfo = model.appinfo;//[model.appinfo stringByReplacingOccurrencesOfString:@"\n" withString:@"#&####"];//model.appinfo;
+    NSString *callStack = [model.callStack stringByReplacingOccurrencesOfString:@"\r" withString:@"#&####"];//model.callStack;
+    //  NSLog(@"type=%@--name=%@--reason=%@--appinfo=%@--callStack=%@",type,name,reason,appinfo,callStack);
+    NSString *currntTime = [self getCurrntTime];
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^CrashCollect", logNum,currntTime];
     @synchronized (self) {
         [self logNumAddOne];
         [att appendFormat:@"^%@",type];
         [att appendFormat:@"^%@",name];
         [att appendFormat:@"^%@",reason];
-        [att appendFormat:@"^%@",appinfo];
         [att appendFormat:@"^%@",callStack];
         [att appendFormat:@"^%@",@"\n"];
     }
@@ -495,24 +724,58 @@ static NSString * td_resource_monitorData_callback_key;
 //    }
 //    [self normalDataStrAppendwith:att];
 }
+//检测卡顿
 - (void)anrEyeWithAnrEye:(ANREye *)anrEye startTime:(int64_t)startTime endTime:(int64_t)endTime catchWithThreshold:(double)threshold mainThreadBacktrace:(NSString *)mainThreadBacktrace allThreadBacktrace:(NSString *)allThreadBacktrace {
+    if (!self.isStartCasch) {
+        return;
+    }
     //NSMutableString *mainThradB = [[NSMutableString alloc]init];
+//    NSLog(@"mainThreadBacktrace=%@\n allThreadBacktrace=%@\n",mainThreadBacktrace,allThreadBacktrace);
     NSString *mainThradB = [mainThreadBacktrace stringByReplacingOccurrencesOfString:@"\n" withString:@"#&####"];
     //##&&**###INRCollect作为唯一标识
     NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^INRCollectMainThread", (long)logNum,[self getCurrntTime]];
     @synchronized (self) {
         [self logNumAddOne];
-     //   long long startTime1 = self ->startTime;
         //开始时间
         [att appendFormat:@"^%lld",startTime];
         //结束时间
         [att appendFormat:@"^%lld",endTime];
         //卡顿时长
         [att appendFormat:@"^%lld",endTime - startTime];
-       // [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
         [att appendFormat:@"^%@",mainThradB];
-      //  [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
-       // [att appendFormat:@"%@",allThreadBacktrace];
+        [att appendFormat:@"^%@",@"\n"];
+    }
+    [self normalDataStrAppendwith:att];
+}
+- (void)anrEyeWithAnrEye:(ANREye *)anrEye startTime:(int64_t)startTime endTime:(int64_t)endTime catchWithThreshold:(double)threshold mainThreadBacktraceList:(NSArray<NSDictionary<NSString *,NSString *> *> *)mainThreadBacktraceList{
+    if (!self.isStartCasch) {
+        return;
+    }
+    NSMutableString *attStatickList = [[NSMutableString alloc]init];
+    @synchronized (self) {
+        for (NSDictionary<NSString *,NSString *> *stackInformation in mainThreadBacktraceList) {
+            NSMutableString *attStatick = [[NSMutableString alloc]initWithFormat:@"%ld^%@^INRCollectMainThreadStackInformation", (long)logNum,@"100000"];
+              [self logNumAddOne];
+            NSString *start = stackInformation[@"startTime"];
+            NSString *stackI = stackInformation[@"stackInformation"];
+            //开始时间
+            [attStatick appendFormat:@"^%@",start];
+             [attStatick appendFormat:@"^%@",stackI];
+             [attStatick appendFormat:@"^%@",@"\n"];
+            [attStatickList appendString:attStatick];
+        }
+    }
+    [self normalDataStrAppendwith:attStatickList];
+    NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^INRCollectMainThread", (long)logNum,[self getCurrntTime]];
+    @synchronized (self) {
+        [self logNumAddOne];
+        //开始时间
+        [att appendFormat:@"^%lld",startTime];
+        //结束时间
+        [att appendFormat:@"^%lld",endTime];
+        //卡顿时长
+        [att appendFormat:@"^%lld",endTime - startTime];
+        //[att appendFormat:@"^%@",mainThreadBacktraceList];
         [att appendFormat:@"^%@",@"\n"];
     }
     [self normalDataStrAppendwith:att];
@@ -564,30 +827,6 @@ static NSString * td_resource_monitorData_callback_key;
         }
         [weakSelf normalDataStrAppendwith:att];
     }];
-}
-//获取卡顿信息
-#pragma mark - TDPerformanceMonitorDelegate
-- (void)performanceMonitorCatonInformation:(NSString *)startTime withEndTime:(NSString *)endTime withCatonStackInformation:(NSString *)mainThreadBacktrace {
-    
-    NSString *mainThradB = [mainThreadBacktrace stringByReplacingOccurrencesOfString:@"\n" withString:@"#&####"];
-    //##&&**###INRCollect作为唯一标识
-    NSMutableString *att = [[NSMutableString alloc]initWithFormat:@"%ld^%@^PerformanceMonitorINRCollectMainThread", (long)logNum,[self getCurrntTime]];
-    @synchronized (self) {
-        [self logNumAddOne];
-        //   long long startTime1 = self ->startTime;
-        //开始时间
-        //        [att appendFormat:@"^%lld",startTime];
-        //        //结束时间
-        //        [att appendFormat:@"^%lld",endTime];
-        //        //卡顿时长
-        //        [att appendFormat:@"^%lld",endTime - startTime];
-        // [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
-        [att appendFormat:@"^%@",mainThradB];
-        //  [att appendFormat:@"%@^%@%@",@"\n",@"##&&**###INRCollectAllThreadBacktrace",@"\n"];
-        // [att appendFormat:@"%@",allThreadBacktrace];
-        [att appendFormat:@"^%@",@"\n"];
-    }
-    [self normalDataStrAppendwith:att];
 }
 - (NSString *)getCurrntTime {
     long long curt = [self currentTime];

@@ -14,6 +14,11 @@
 //#import <CrashReporter/CrashReporter.h>
 #import <execinfo.h>
 #import "TDBacktraceLogger.h"
+
+#import "sys/utsname.h"
+#import <ifaddrs.h>
+#import <AdSupport/AdSupport.h>
+#include <sys/sysctl.h>
 #define BACKTRACE_SIZE   16 
 @interface TDPerformanceMonitor ()
 
@@ -334,5 +339,100 @@ void dump(void)
 //    _backtraceLoggerArray = [[NSMutableString alloc]init];
 //    return _backtraceLoggerArray;
 //}
+//设备信息
 
++ (NSString *)deviceId {
+    return [ASIdentifierManager sharedManager].advertisingIdentifier.UUIDString;
+}
++ (NSString *)deviceModel {
+    struct utsname systemInfo;
+    uname(&systemInfo);
+    NSString *deviceString = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+    
+    // iPhone
+    if ([deviceString isEqualToString:@"iPhone1,1"])                                                                                               return @"iPhone";
+    if ([deviceString isEqualToString:@"iPhone1,2"])                                                                                               return @"iPhone 3G";
+    if ([deviceString isEqualToString:@"iPhone2,1"])                                                                                               return @"iPhone 3GS";
+    if ([deviceString isEqualToString:@"iPhone3,1"] || [deviceString isEqualToString:@"iPhone3,2"] || [deviceString isEqualToString:@"iPhone3,3"]) return @"iPhone 4";
+    if ([deviceString isEqualToString:@"iPhone4,1"])                                                                                               return @"iPhone 4s";
+    if ([deviceString isEqualToString:@"iPhone5,1"] || [deviceString isEqualToString:@"iPhone5,2"])                                                return @"iPhone 5";
+    if ([deviceString isEqualToString:@"iPhone5,3"] || [deviceString isEqualToString:@"iPhone5,4"])                                                return @"iPhone 5c";
+    if ([deviceString isEqualToString:@"iPhone6,1"] || [deviceString isEqualToString:@"iPhone6,2"])                                                return @"iPhone 5s";
+    if ([deviceString isEqualToString:@"iPhone7,2"])                                                                                               return @"iPhone 6";
+    if ([deviceString isEqualToString:@"iPhone7,1"])                                                                                               return @"iPhone 6 Plus";
+    if ([deviceString isEqualToString:@"iPhone8,1"])                                                                                               return @"iPhone 6s";
+    if ([deviceString isEqualToString:@"iPhone8,2"])                                                                                               return @"iPhone 6s Plus";
+    if ([deviceString isEqualToString:@"iPhone8,4"])                                                                                               return @"iPhone SE";
+    if ([deviceString isEqualToString:@"iPhone9,1"] || [deviceString isEqualToString:@"iPhone9,3"])                                                return @"iPhone 7";
+    if ([deviceString isEqualToString:@"iPhone9,2"] || [deviceString isEqualToString:@"iPhone9,4"])                                                return @"iPhone 7 Plus";
+    if ([deviceString isEqualToString:@"iPhone10,1"] || [deviceString isEqualToString:@"iPhone10,4"])                                              return @"iPhone 8";
+    if ([deviceString isEqualToString:@"iPhone10,2"] || [deviceString isEqualToString:@"iPhone10,5"])                                              return @"iPhone 8 Plus";
+    if ([deviceString isEqualToString:@"iPhone10,3"] || [deviceString isEqualToString:@"iPhone10,6"])                                              return @"iPhone X";
+    if ([deviceString isEqualToString:@"iPhone11,8"])                                                                                              return @"iPhone XR";
+    if ([deviceString isEqualToString:@"iPhone11,2"])                                                                                              return @"iPhone XS";
+    if ([deviceString isEqualToString:@"iPhone11,4"] || [deviceString isEqualToString:@"iPhone11,6"])                                              return @"iPhone XS Max";
+    
+    
+    // iPad
+    if ([deviceString isEqualToString:@"iPad1,1"])                                                                                           return @"iPad";
+    if ([deviceString isEqualToString:@"iPad2,1"] || [deviceString isEqualToString:@"iPad2,2"] || [deviceString isEqualToString:@"iPad2,3"] || [deviceString isEqualToString:@"iPad2,4"])
+        return @"iPad 2";
+    if ([deviceString isEqualToString:@"iPad3,1"] || [deviceString isEqualToString:@"iPad3,2"] || [deviceString isEqualToString:@"iPad3,3"]) return @"iPad 3";
+    if ([deviceString isEqualToString:@"iPad3,4"] || [deviceString isEqualToString:@"iPad3,5"] || [deviceString isEqualToString:@"iPad3,6"]) return @"iPad 4";
+    if ([deviceString isEqualToString:@"iPad6,11"] || [deviceString isEqualToString:@"iPad6,12"])                                            return @"iPad 5";
+    if ([deviceString isEqualToString:@"iPad4,1"] || [deviceString isEqualToString:@"iPad4,2"] || [deviceString isEqualToString:@"iPad4,3"]) return @"iPad Air";
+    if ([deviceString isEqualToString:@"iPad5,3"] || [deviceString isEqualToString:@"iPad5,4"])                                              return @"iPad Air 2";
+    if ([deviceString isEqualToString:@"iPad6,7"] || [deviceString isEqualToString:@"iPad6,8"])                                              return @"iPad Pro (12.9-inch)";
+    if ([deviceString isEqualToString:@"iPad6,3"] || [deviceString isEqualToString:@"iPad6,4"])                                              return @"iPad Pro (9.7-inch)";
+    if ([deviceString isEqualToString:@"iPad7,1"] || [deviceString isEqualToString:@"iPad7,2"])                                              return @"iPad Pro 2 (12.9-inch)";
+    if ([deviceString isEqualToString:@"iPad7,3"] || [deviceString isEqualToString:@"iPad7,4"])                                              return @"iPad Pro (10.5-inch)";
+    if ([deviceString isEqualToString:@"iPad2,5"] || [deviceString isEqualToString:@"iPad2,6"] || [deviceString isEqualToString:@"iPad2,7"]) return @"iPad Mini";
+    if ([deviceString isEqualToString:@"iPad4,4"] || [deviceString isEqualToString:@"iPad4,5"] || [deviceString isEqualToString:@"iPad4,6"]) return @"iPad Mini 2";
+    if ([deviceString isEqualToString:@"iPad4,7"] || [deviceString isEqualToString:@"iPad4,8"] || [deviceString isEqualToString:@"iPad4,9"]) return @"iPad Mini 3";
+    if ([deviceString isEqualToString:@"iPad5,1"] || [deviceString isEqualToString:@"iPad5,2"])                                              return @"iPad Mini 4)";
+    
+    // simulator
+    if ([deviceString isEqualToString: @"i386"] || [deviceString isEqualToString:@"x86_64"]) return @"iPhone Simulator";
+    
+    return deviceString;
+}
+
++ (NSString *)systemVersion {
+    return [UIDevice currentDevice].systemVersion;
+}
++ (NSString *)appBundleIdentifier {
+    return [[NSBundle mainBundle] infoDictionary][@"CFBundleIdentifier"];
+}
+
++ (NSString *)appVersion {
+    return [[NSBundle mainBundle] infoDictionary][@"CFBundleVersion"];
+}
+
++ (NSString *)appBuildVersion {
+    return [[NSBundle mainBundle] infoDictionary][@"CFBundleShortVersionString"];
+}
+
++ (NSString *)appName {
+    return [[NSBundle mainBundle] infoDictionary][@"CFBundleDisplayName"];
+}
++ (NSString *)getCPUFramwork {
+    NSMutableString *cpu = [[NSMutableString alloc] init];
+    size_t size;
+    cpu_type_t type;
+    cpu_subtype_t subtype;
+    size = sizeof(type);
+    sysctlbyname("hw.cputype", &type, &size, NULL, 0);
+    size = sizeof(subtype);
+    sysctlbyname("hw.cpusubtype", &subtype, &size, NULL, 0); // values for cputype and cpusubtype defined in mach/machine.h
+    if (type == CPU_TYPE_X86_64) { [cpu appendString:@"x86_64"]; }
+    else if (type == CPU_TYPE_X86) { [cpu appendString:@"x86"]; }
+    else if (type == CPU_TYPE_ARM) { [cpu appendString:@"ARM"];
+        switch(subtype) {
+            case CPU_SUBTYPE_ARM_V6: [cpu appendString:@"V6"]; break;
+            case CPU_SUBTYPE_ARM_V7: [cpu appendString:@"V7"]; break;
+            case CPU_SUBTYPE_ARM_V8: [cpu appendString:@"V8"]; break;
+        }
+    }
+    return cpu;
+}
 @end

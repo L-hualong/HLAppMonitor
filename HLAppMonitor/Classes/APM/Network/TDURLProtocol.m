@@ -12,7 +12,7 @@
 #import "NSURLResponse+MSDoggerMonitor.h"
 #import "GZIP/NSData+GZIP.h"
 #import "TDNetworkTrafficManager.h"
-#import "TDNetFlowDataSource.h"
+
 static NSString *const TDHTTP = @"GXLHTTP";
 
 @interface TDURLProtocol() <NSURLConnectionDelegate, NSURLConnectionDataDelegate>
@@ -22,7 +22,7 @@ static NSString *const TDHTTP = @"GXLHTTP";
 @property (nonatomic, strong) NSURLResponse *dm_response;
 @property (nonatomic, strong) NSMutableData *dm_data;
 //毫秒
-@property (nonatomic, assign) NSTimeInterval startTime;
+@property (nonatomic, copy) NSString *startTime;
 
 @end
 @implementation TDURLProtocol
@@ -82,29 +82,30 @@ static NSString *const TDHTTP = @"GXLHTTP";
     NSURLRequest *request = [[self class] canonicalRequestForRequest:self.request];
     self.connection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:YES];
     self.dm_request = self.request;
-     self.startTime = [[NSDate date] timeIntervalSince1970] * 1000;
+    self.startTime = [self getCurrntTime];
 }
 
 - (void)stopLoading {
     [self.connection cancel];
-    
-    TDNetworkTrafficLog *model = [[TDNetworkTrafficLog alloc] init];
-    model.path = self.request.URL.path;
-    model.host = self.request.URL.host;
-    model.type = TDNetworkTrafficDataTypeResponse;
-    model.lineLength = [self.dm_response dm_getLineLength];
-    model.headerLength = [self.dm_response dm_getHeadersLength];
+    //respose数据/下行流量
+    NSUInteger lineLengthRespose = [self.dm_response dm_getLineLength];
+    NSUInteger headerLengthRespose = [self.dm_response dm_getHeadersLength];
+    NSUInteger bodyLengthRespose = 0;
     if ([self.dm_response isKindOfClass:[NSHTTPURLResponse class]]) {
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)self.dm_response;
         NSData *data = self.dm_data;
         if ([[httpResponse.allHeaderFields objectForKey:@"Content-Encoding"] isEqualToString:@"gzip"]) {
             data = [self.dm_data gzippedData];
         }
-        model.bodyLength = data.length;
+        bodyLengthRespose = data.length;
     }
-    model.length = model.lineLength + model.headerLength + model.bodyLength;
-    [model settingOccurTime];
-    [[TDNetFlowDataSource shareInstance]addHttpModel:model];
+    long long totalRespose = lineLengthRespose + headerLengthRespose + bodyLengthRespose;
+    //上行流量
+    NSUInteger lineLengthRequest = [self.connection.currentRequest dgm_getLineLength];
+    NSUInteger headerLengthRequest = [self.connection.currentRequest dgm_getHeadersLengthWithCookie];
+    NSUInteger bodyLengthRequest = [self.connection.currentRequest dgm_getBodyLength];
+    long long totalRequest = lineLengthRequest + headerLengthRequest + bodyLengthRequest;
+    [[TDNetFlowDataSource shareInstance]setNetworkTrafficData:totalRequest withDownFlow:totalRespose];
 }
 
 #pragma mark - NSURLConnectionDelegate
@@ -124,17 +125,6 @@ static NSString *const TDHTTP = @"GXLHTTP";
         self.dm_response = response;
         [self.client URLProtocol:self wasRedirectedToRequest:request redirectResponse:response];
     }
-    
-    TDNetworkTrafficLog *model = [[TDNetworkTrafficLog alloc] init];
-    model.path = request.URL.path;
-    model.host = request.URL.host;
-    model.type = TDNetworkTrafficDataTypeRequest;
-    model.lineLength = [connection.currentRequest dgm_getLineLength];
-    model.headerLength = [connection.currentRequest dgm_getHeadersLengthWithCookie];
-    model.bodyLength = [connection.currentRequest dgm_getBodyLength];
-    model.length = model.lineLength + model.headerLength + model.bodyLength;
-    [model settingOccurTime];
-    [[TDNetFlowDataSource shareInstance]addHttpModel:model];
     return request;
 }
 
@@ -167,5 +157,15 @@ static NSString *const TDHTTP = @"GXLHTTP";
     }
     return _dm_data;
 }
-
+- (NSString *)getCurrntTime {
+    long long curt = [self currentTime];
+    NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
+    return currntTime;
+}
+//获取当前时间
+- (long long)currentTime {
+    NSTimeInterval time = [[NSDate date] timeIntervalSince1970] * 1000;
+    long long dTime = [[NSNumber numberWithDouble:time] longLongValue]; 
+    return dTime;
+}
 @end

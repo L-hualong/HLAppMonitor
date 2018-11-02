@@ -11,7 +11,7 @@
 - (void)settingOccurTime {
     self.occurTime = [self getCurrntTime];
 }
-- (NSString *)getCurrntTime {
+- (NSString *)getCurrntTime { 
     long long curt = [self currentTime];
     NSString *currntTime = [NSString stringWithFormat:@"%lld",curt];
     return currntTime;

@@ -123,6 +123,7 @@ public class CrashEye: NSObject {
         CrashEye.isOpen = true
         
         app_old_exceptionHandler = NSGetUncaughtExceptionHandler()
+        
         NSSetUncaughtExceptionHandler(CrashEye.RecieveException)
         self.setCrashSignalHandler()
     }
@@ -136,6 +137,18 @@ public class CrashEye: NSObject {
     }
     
     private class func setCrashSignalHandler(){
+        /*
+        异常退出 EXC_CRASH/SIGABRT,
+        内存访问不良[EXC_BAD_ACCESS // SIGSEGV // SIGBUS]
+         SIGBUS,
+         SIGFPE,
+        非法指令 EXC_BAD_INSTRUCTION/ SIGILL,
+         SIGSEGV,
+       跟踪陷阱 EXC_BREAKPOINT /SIGTRAP,
+         SIGTERM,
+        被杀 SIGKILL
+        退出 SIGQUIT
+         */
         signal(SIGABRT, CrashEye.RecieveSignal)
         signal(SIGILL, CrashEye.RecieveSignal)
         signal(SIGSEGV, CrashEye.RecieveSignal)
@@ -159,7 +172,7 @@ public class CrashEye: NSObject {
         let callStack = exteption.callStackSymbols.joined(separator: "\r")
         let reason = exteption.reason ?? ""
         let name = exteption.name
-        let appinfo = CrashEye.appInfo()
+        let appinfo = ""//CrashEye.appInfo()
         
         
         let model = CrashModel(type:"exception",
@@ -182,8 +195,8 @@ public class CrashEye: NSObject {
         var stack = Thread.callStackSymbols
         stack.removeFirst(2)
         let callStack = stack.joined(separator: "\r")
-        let reason = "Signal \(CrashEye.name(of: signal))(\(signal)) was raised.\n"
-        let appinfo = CrashEye.appInfo()
+        let reason = "Signal \(CrashEye.name(of: signal))(\(signal)) was raised."
+        let appinfo = ""//"CrashEye.appInfo()"
         
         let model = CrashModel(type:"signal",
                                name:CrashEye.name(of: signal),
@@ -205,6 +218,8 @@ public class CrashEye: NSObject {
         let deviceModel = UIDevice.current.model
         let systemName = UIDevice.current.systemName
         let systemVersion = UIDevice.current.systemVersion
+        //"\(displayName)#&####\(shortVersion)#&####\(version)" +
+       // "#&####\(deviceModel)" + "#&####\(systemName)#&####\(systemVersion)"
         return "App: \(displayName) \(shortVersion)(\(version))\n" +
             "Device:\(deviceModel)\n" + "OS Version:\(systemName) \(systemVersion)"
     }

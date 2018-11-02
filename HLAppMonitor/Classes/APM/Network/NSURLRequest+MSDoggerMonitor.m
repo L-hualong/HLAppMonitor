@@ -84,5 +84,29 @@
     }
     
     return bodyLength;
+    //跟didi一样,跟charles比很正确
+//    NSData *httpBody;
+//    NSURLRequest *request = self;
+//    if (request.HTTPBody) {
+//        httpBody = request.HTTPBody;
+//    }else{
+//        if ([request.HTTPMethod isEqualToString:@"POST"]) {
+//            if (!request.HTTPBody) {
+//                uint8_t d[1024] = {0};
+//                NSInputStream *stream = request.HTTPBodyStream;
+//                NSMutableData *data = [[NSMutableData alloc] init];
+//                [stream open];
+//                while ([stream hasBytesAvailable]) {
+//                    NSInteger len = [stream read:d maxLength:1024];
+//                    if (len > 0 && stream.streamError == nil) {
+//                        [data appendBytes:(void *)d length:len];
+//                    }
+//                }
+//                httpBody = [data copy];
+//                [stream close];
+//            }
+//        }
+//    }
+//    return [httpBody length];
 }
 @end

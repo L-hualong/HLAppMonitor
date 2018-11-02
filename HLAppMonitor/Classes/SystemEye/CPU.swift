@@ -39,6 +39,7 @@ open class CPU: NSObject {
     
     ///  Get CPU usage of hole system (system, user, idle, nice). Determined by the delta between
     ///  the current and last call.
+    //获取CPU使用率
     open static func systemUsage() -> Array<String> {
         let load = self.hostCPULoadInfo
         
@@ -48,10 +49,13 @@ open class CPU: NSObject {
         let niceDiff = Double(load.cpu_ticks.3 - loadPrevious.cpu_ticks.3)
         
         let totalTicks = sysDiff + userDiff + niceDiff + idleDiff
-        
+        //系统态占用
         let sys: String  = "\(sysDiff  / totalTicks * 100.0)"
+        //用户态占用
         let user: String = "\(userDiff / totalTicks * 100.0)"
+        //空闲占用
         let idle: String = "\(idleDiff / totalTicks * 100.0)"
+        //nice加权的用户态占用
         let nice: String = "\(niceDiff / totalTicks * 100.0)"
         
         loadPrevious = load
@@ -78,7 +82,23 @@ open class CPU: NSObject {
     
     /// previous load of cpu
     private static var loadPrevious = host_cpu_load_info()
-    
+    //CPU负载信息
+    func hostCPULoadInfo() -> host_cpu_load_info? { 
+        let HOST_CPU_LOAD_INFO_COUNT = MemoryLayout<host_cpu_load_info>.stride/MemoryLayout<integer_t>.stride 
+        var size = mach_msg_type_number_t(HOST_CPU_LOAD_INFO_COUNT) 
+        var cpuLoadInfo = host_cpu_load_info() 
+        
+        let result = withUnsafeMutablePointer(to: &cpuLoadInfo) { 
+            $0.withMemoryRebound(to: integer_t.self, capacity: HOST_CPU_LOAD_INFO_COUNT) { 
+                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &size) 
+            } 
+        } 
+        if result != KERN_SUCCESS{ 
+            print("Error - \(#file): \(#function) - kern_result_t = \(result)") 
+            return nil 
+        } 
+        return cpuLoadInfo 
+    } 
     static var hostCPULoadInfo: host_cpu_load_info {
         get {
             var size     = HOST_CPU_LOAD_INFO_COUNT

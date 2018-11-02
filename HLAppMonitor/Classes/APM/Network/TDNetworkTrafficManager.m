@@ -6,7 +6,7 @@
 //
 
 #import "TDNetworkTrafficManager.h"
-#import "TDURLProtocol.h"
+
 @interface TDNetworkTrafficManager ()
 
 @end
