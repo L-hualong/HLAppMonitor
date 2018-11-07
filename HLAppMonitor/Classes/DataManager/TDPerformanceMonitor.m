@@ -34,6 +34,8 @@
     @public
     dispatch_semaphore_t semaphore;
     CFRunLoopActivity activity;
+    long long startTime;
+    long long endTime;
 }
 
 + (instancetype)sharedInstance
@@ -141,6 +143,49 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
     
     // 记录状态值
     monitor->activity = activity;
+    switch (activity) {
+            //The entrance of the run loop, before entering the event processing loop.
+            //This activity occurs once for each call to CFRunLoopRun and CFRunLoopRunInMode
+        case kCFRunLoopEntry:
+           // NSLog(@"run loop entry");
+            break;
+            //Inside the event processing loop before any timers are processed
+        case kCFRunLoopBeforeTimers:
+           // NSLog(@"run loop before timers");
+            break;
+            //Inside the event processing loop before any sources are processed
+        case kCFRunLoopBeforeSources:
+            //NSLog(@"run loop before sources");
+            break;
+            //Inside the event processing loop before the run loop sleeps, waiting for a source or timer to fire.
+            //This activity does not occur if CFRunLoopRunInMode is called with a timeout of 0 seconds.
+            //It also does not occur in a particular iteration of the event processing loop if a version 0 source fires
+        case kCFRunLoopBeforeWaiting:{
+//            _waitStartTime = 0;
+            //NSLog(@"run loop before waiting");
+            break;
+        }
+            //Inside the event processing loop after the run loop wakes up, but before processing the event that woke it up.
+            //This activity occurs only if the run loop did in fact go to sleep during the current loop
+        case kCFRunLoopAfterWaiting:{
+//            _waitStartTime = [[NSDate date] timeIntervalSince1970];
+            monitor->startTime = [monitor currentTime];
+            //NSLog(@"run loop after waiting");
+            break;
+        }
+            //The exit of the run loop, after exiting the event processing loop.
+            //This activity occurs once for each call to CFRunLoopRun and CFRunLoopRunInMode
+        case kCFRunLoopExit:
+           // NSLog(@"run loop exit");
+            break;
+            /*
+             A combination of all the preceding stages
+             case kCFRunLoopAllActivities:
+             break;
+             */
+        default:
+            break;
+    }
     // 发送信号
     dispatch_semaphore_t semaphore = monitor->semaphore;
     //增加信号量加1（发送一个信号量信号）,
@@ -237,10 +282,16 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
                 //RunLoop 即将触发 Source0 (非port) 回调。kCFRunLoopAfterWaiting, 即停止等待（被唤醒）
                 if (self->activity == kCFRunLoopBeforeSources || self->activity == kCFRunLoopAfterWaiting)
                 {
-                    if (++self->timeoutCount < (self ->timeInterval / 50))
-                        continue;
                     
-//                    TDLog(@"好像有点儿卡哦");
+                    if (++self->timeoutCount < (self ->timeInterval / 50)) {
+                        if (self ->timeoutCount <= 1) {
+                           // self ->startTime = [self currentTime];
+                        }
+                        continue;
+                    }
+                    
+                    self->endTime = [self currentTime];
+                    NSLog(@"好像有点儿卡哦time=%lld",(self->endTime - self->startTime));
 //                      TDLOG_MAIN // 打印主线程调用栈， TDLOG 打印当前线程，TDLOG_ALL 打印所有线程
                     if (self.delegate && [self.delegate respondsToSelector:@selector(performanceMonitorCatonInformation:withEndTime:withCatonStackInformation:)]) {
                         NSString *threamData =  [TDBacktraceLogger td_backtraceOfMainThread];
@@ -252,7 +303,6 @@ static void runLoopObserverCallBack(CFRunLoopObserverRef observer, CFRunLoopActi
         }
     });
 }
-
 - (void)stop
 {
     if (!observer)

@@ -279,7 +279,7 @@ public class MSGCDTimer: NSObject {
     deinit {
         self.observers.removeAll()
         self.destroyTimer()
-        //printlog("MSGCDTimer--deinit")
+        print("MSGCDTimer--deinit")
     }
 }
 

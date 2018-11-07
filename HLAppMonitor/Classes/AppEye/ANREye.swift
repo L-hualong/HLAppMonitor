@@ -66,7 +66,7 @@ open class ANREye: NSObject {
             self?.startTimer(intervalTime: threshold / 3)
             }, isCatonHandler: {[weak self] (isCaton) in
                 if isCaton == false {//不卡顿
-                    self?.stopTimer()
+                    self?.pauseTimer()
                     self?.stackInformationArray.removeAll()
                 }
                 
@@ -74,10 +74,16 @@ open class ANREye: NSObject {
                 guard let strongSelf = self else {
                     return
                 }
-                strongSelf.stopTimer()
+                strongSelf.pauseTimer()
                 let statickList = strongSelf.stackInformationArray
+                var stackLists: [[String: String]] = [[String: String]]()
+                
+                statickList.forEach({ (dict) in
+                    stackLists.append(dict)
+                })
+                //print("-----卡---3")
                 strongSelf.stackInformationArray.removeAll()
-                strongSelf.delegate?.anrEye?(anrEye: strongSelf, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktraceList: statickList)
+                strongSelf.delegate?.anrEye?(anrEye: strongSelf, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktraceList: stackLists)
         })
         //        var main: String?
         //        var all: String?
@@ -141,8 +147,10 @@ open class ANREye: NSObject {
     //--------------------------------------------------------------------------
     private var pingThread: AppPingThread?
     //记录堆栈信息
-    private lazy var stackInformationArray:[[String:String]] = {
-        var stackArray: [[String:String]] = [[String:String]]()
+    private lazy var stackInformationArray:MSSafeArray<[String:String]> = {
+//        var stackArray: [[String:String]] = [[String:String]]()
+//        return stackArray
+         var stackArray: MSSafeArray<[String:String]> = MSSafeArray<[String:String]>() 
         return stackArray
     }()
     //定时器 定时器打印堆栈信息的
@@ -155,8 +163,13 @@ open class ANREye: NSObject {
             })
             timer?.start()
         }else{//定时器不为nil,不用创建
-            timer?.reset(.seconds(intervalTime))
+            //timer?.reset(.seconds(intervalTime))
+            timer?.start()
         }     
+    }
+    //暂停定时器
+    private func pauseTimer(){
+        timer?.pause();
     }
     //关闭定时器
     private func stopTimer(){
@@ -171,6 +184,7 @@ open class ANREye: NSObject {
         stackDict["startTime"] = startTime
         stackDict["stackInformation"] = main1
         stackInformationArray.append(stackDict)
+       // print("--------1")
     }
     func currentTime() -> String {
         let time = NSDate().timeIntervalSince1970 * 1000
@@ -245,7 +259,7 @@ private class AppPingThread: Thread {
             Thread.sleep(forTimeInterval:self.threshold )//
             if self.isMainThreadBlock  {
                 isCaton = true
-                // self.handler?()
+                 //self.handler?()
             }
             self.isCatonhandler?(isCaton)
             //DispatchTime.distantFuture， 等待信号量 timeout可以控制可等待的最长时间，设置为.distantFuture表示永久等待
@@ -258,9 +272,8 @@ private class AppPingThread: Thread {
                 if catonLengTime >= Int64(self.threshold * 1000) {
                     self.catonLengthhandler?(startTime,endTime)
                 }
-                
-                print("time=%d",endTime - startTime)
             }
+           
         }
     }
     //创建信号量 设置为0

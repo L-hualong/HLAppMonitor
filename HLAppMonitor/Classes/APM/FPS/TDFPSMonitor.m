@@ -90,15 +90,6 @@
     _lastTime = link.timestamp;
     float fps = _count / delta;
     _fps = fps;
-//    if (self.delegate && [self.delegate respondsToSelector:@selector(fpsMonitor:withCatonTime:withCurrentTime:withStackInformation:)]){
-//        NSString *currenT = [self getCurrntTime];
-//        //主线程堆栈信息
-//        NSString *mainThread = nil;
-//        if (_count < 40 ){
-//            mainThread = [TDBacktraceLogger td_backtraceOfMainThread];
-//        }
-//        [self.delegate fpsMonitor: _count withCatonTime:delta withCurrentTime: currenT withStackInformation: mainThread];
-//    }
     _count = 0;    
 }
 //获取当前时间
