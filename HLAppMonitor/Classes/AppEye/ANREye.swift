@@ -169,11 +169,13 @@ open class ANREye: NSObject {
     }
     //暂停定时器
     private func pauseTimer(){
-        timer?.pause();
+        self.timer?.pause();
     }
     //关闭定时器
     private func stopTimer(){
-        timer = nil;
+        DispatchQueue.main.async {
+            self.timer = nil;
+        }
     }
     //记录堆栈信息
     private func recordsStackInformation() {

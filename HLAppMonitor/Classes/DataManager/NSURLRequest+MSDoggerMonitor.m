@@ -6,7 +6,8 @@
 //
 
 #import "NSURLRequest+MSDoggerMonitor.h"
-#import "GZIP/NSData+GZIP.h"
+//#import "GZIP/NSData+GZIP.h"
+#import "NSData+GZIP.h"
 @implementation NSURLRequest (MSDoggerMonitor)
 
 /*

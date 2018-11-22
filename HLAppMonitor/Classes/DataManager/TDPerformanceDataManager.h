@@ -35,12 +35,12 @@ typedef enum _TDMonitoringIndicators
 
 //异步获取数据,生命周期方法名
 - (void)asyncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier;
-/**
- 定时将数据字符串写入沙盒文件
- 
- @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
- */
-- (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime;
+///**
+// 定时将数据字符串写入沙盒文件
+// 
+// @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
+// */
+//- (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime;
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
 - (void)startToCollectPerformanceData;
 //停止写入监控性能数据
