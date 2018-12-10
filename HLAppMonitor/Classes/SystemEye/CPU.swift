@@ -19,7 +19,7 @@ open class CPU: NSObject {
     //--------------------------------------------------------------------------
     
     /// Number of physical cores on this machine.
-    open static var physicalCores: Int {
+    public static var physicalCores: Int {
         get {
             return Int(System.hostBasicInfo.physical_cpu)
         }
@@ -27,7 +27,7 @@ open class CPU: NSObject {
     
     /// Number of logical cores on this machine. Will be equal to physicalCores
     /// unless it has hyper-threading, in which case it will be double.
-    open static var logicalCores: Int {
+    public static var logicalCores: Int {
         get {
             return Int(System.hostBasicInfo.logical_cpu)
         }
@@ -40,7 +40,7 @@ open class CPU: NSObject {
     ///  Get CPU usage of hole system (system, user, idle, nice). Determined by the delta between
     ///  the current and last call.
     //获取CPU使用率
-    open static func systemUsage() -> Array<String> {
+   @objc public static func systemUsage() -> Array<String> {
         let load = self.hostCPULoadInfo
         
         let userDiff = Double(load.cpu_ticks.0 - loadPrevious.cpu_ticks.0)
@@ -65,7 +65,7 @@ open class CPU: NSObject {
     
     
     /// Get CPU usage of application,get from all thread
-    open class func applicationUsage() -> Double {
+   @objc open class func applicationUsage() -> Double {
         let threads = self.threadBasicInfos()
         var result : Double = 0.0
         threads.forEach { (thread:thread_basic_info) in
@@ -127,7 +127,7 @@ open class CPU: NSObject {
     private class func flag(_ thread:thread_basic_info) -> Bool {
         let foo = thread.flags & TH_FLAGS_IDLE
         let number = NSNumber.init(value: foo)
-        return !Bool.init(number)
+        return !Bool.init(truncating: number)
     }
     
     private class func threadActPointers() -> [thread_act_t] {
@@ -151,15 +151,15 @@ open class CPU: NSObject {
         }
         
         let krsize = count * UInt32.init(MemoryLayout<thread_t>.size)
-        let kr = vm_deallocate(mach_task_self_, vm_address_t(array.pointee), vm_size_t(krsize));
+        _ = vm_deallocate(mach_task_self_, vm_address_t(array.pointee), vm_size_t(krsize));
         return threads_act
     }
     
     private class func threadBasicInfos() -> [thread_basic_info]  {
         var result = [thread_basic_info]()
         
-        var thinfo : thread_info_t = thread_info_t.allocate(capacity: Int(THREAD_INFO_MAX))
-        var thread_info_count = UnsafeMutablePointer<mach_msg_type_number_t>.allocate(capacity: 128)
+        let thinfo : thread_info_t = thread_info_t.allocate(capacity: Int(THREAD_INFO_MAX))
+        let thread_info_count = UnsafeMutablePointer<mach_msg_type_number_t>.allocate(capacity: 128)
         var basic_info_th: thread_basic_info_t? = nil
         
         for act_t in self.threadActPointers() {

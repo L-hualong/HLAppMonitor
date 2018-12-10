@@ -23,7 +23,7 @@ class WeakNetworkEyeDelegate: NSObject {
 
 open class NetworkEye: NSObject {
     
-    open static var isWatching: Bool  {
+    public static var isWatching: Bool  {
         get {
             return EyeProtocol.delegates.count > 0
         }

@@ -30,12 +30,12 @@ import Foundation
 //--------------------------------------------------------------------------
 // MARK: - ANREye
 //--------------------------------------------------------------------------
-open class ANREye: NSObject {
+ @objc open class ANREye: NSObject {
     
     //--------------------------------------------------------------------------
     // MARK: OPEN PROPERTY
     //--------------------------------------------------------------------------
-    open weak var delegate: ANREyeDelegate?
+   @objc open weak var delegate: ANREyeDelegate?
     
     open var isOpening: Bool {
         get {
@@ -49,7 +49,7 @@ open class ANREye: NSObject {
     // MARK: OPEN FUNCTION
     //--------------------------------------------------------------------------
     
-    open func open(with threshold:Double) {
+   @objc open func open(with threshold:Double) {
         if Thread.current.isMainThread {
             //mach_thread_self() 获得线程内核端口的发送权限
             AppBacktrace.main_thread_id = mach_thread_self()
@@ -126,7 +126,7 @@ open class ANREye: NSObject {
         //        })
     }
     
-    open func close() {
+   @objc open func close() {
         self.pingThread?.cancel()
         stopTimer()
     }

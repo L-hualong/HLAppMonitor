@@ -38,13 +38,13 @@ public enum CrashModelType:Int {
 //--------------------------------------------------------------------------
 // MARK: - CrashModel
 //--------------------------------------------------------------------------
-open class CrashModel: NSObject {
+@objc open class CrashModel: NSObject {
     
-    open var type: String!
-    open var name: String!
-    open var reason: String!
+   @objc open var type: String!
+   @objc open var name: String!
+   @objc open var reason: String!
     open var appinfo: String!
-    open var callStack: String!
+   @objc open var callStack: String!
     
     init(type:String,
          name:String,
@@ -78,7 +78,7 @@ public class CrashEye: NSObject {
     //--------------------------------------------------------------------------
     // MARK: OPEN FUNCTION
     //--------------------------------------------------------------------------
-    open class func add(delegate:CrashEyeDelegate) {
+   @objc open class func add(delegate:CrashEyeDelegate) {
         // delete null week delegate
         self.delegates = self.delegates.filter {
             return $0.delegate != nil
@@ -99,7 +99,7 @@ public class CrashEye: NSObject {
         }
     }
     
-    open class func remove(delegate:CrashEyeDelegate) {
+  @objc  open class func remove(delegate:CrashEyeDelegate) {
         self.delegates = self.delegates.filter {
             // filter null weak delegate
             return $0.delegate != nil

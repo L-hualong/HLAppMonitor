@@ -59,14 +59,19 @@ public extension NSObject {
                                      inAlterClass alterClass: AnyClass!,
                                      isClassMethod:Bool) -> SwizzleResult {
         
-        var alterClass = alterClass
+        var alterClass1:AnyClass = alterClass
         var origClass: AnyClass = self.classForCoder()
         if isClassMethod {
-            alterClass = object_getClass(alterClass)
-            origClass = object_getClass(self.classForCoder())
+            if let _ = object_getClass(alterClass) {
+                alterClass1 = object_getClass(alterClass)!
+            }
+           
+            if let _ = object_getClass(self.classForCoder()) {
+                 origClass = object_getClass(self.classForCoder())!
+            }
         }
         
-        return SwizzleMethod(origClass: origClass, origSelector: origSelector, toAlterSelector: alterSelector, inAlterClass: alterClass)
+        return SwizzleMethod(origClass: origClass, origSelector: origSelector, toAlterSelector: alterSelector, inAlterClass: alterClass1)
     }
 }
 

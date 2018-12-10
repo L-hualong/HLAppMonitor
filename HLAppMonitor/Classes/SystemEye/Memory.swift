@@ -13,14 +13,14 @@ private let HOST_VM_INFO64_COUNT: mach_msg_type_number_t =
 
 private let PAGE_SIZE : Double = Double(vm_kernel_page_size)
 
-open class Memory: NSObject {
+@objc open class Memory: NSObject {
     
     //--------------------------------------------------------------------------
     // MARK: OPEN FUNCTION
     //--------------------------------------------------------------------------
     
     /// Memory usage of application  获取当前任务所占用的内存
-    open class func applicationUsage() -> Array<Double> {
+   @objc open class func applicationUsage() -> Array<Double> {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout.size(ofValue: info) / MemoryLayout<integer_t>.size)
         let kerr = withUnsafeMutablePointer(to: &info) {
@@ -37,7 +37,7 @@ open class Memory: NSObject {
     }
     
     /// Memory usage of system 获取当前设备内存使用情况
-    open class func systemUsage() -> Array<Double> {
+   @objc open class func systemUsage() -> Array<Double> {
         let statistics = self.VMStatistics64()
         
         //空闲内存

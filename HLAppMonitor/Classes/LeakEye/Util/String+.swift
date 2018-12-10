@@ -26,7 +26,7 @@ extension String {
             else { return nil }
         
         
-        return self[leftRange.upperBound..<rightRange.lowerBound]
+        return String(self[leftRange.upperBound..<rightRange.lowerBound])
         
     }
     

@@ -25,7 +25,7 @@ class Variable: NSObject {
     
     /// is a strong property
     func isStrong() -> Bool {
-        let attr = String(cString: property_getAttributes(self.property))
+        let attr = String(cString: property_getAttributes(self.property)!)
         return attr.contains("&")
     }
     
@@ -36,11 +36,16 @@ class Variable: NSObject {
     
     /// type of the property
     func type() -> AnyClass? {
-        let t = String(cString: property_getAttributes(self.property)).components(separatedBy: ",").first
-        guard let type = t?.between("@\"", "\"") else {
+        if let _ = property_getAttributes(self.property)  {
+            let t = String(cString: property_getAttributes(self.property)!).components(separatedBy: ",").first
+            guard let type = t?.between("@\"", "\"") else {
+                return nil
+            }
+            return NSClassFromString(type)
+        }else{
             return nil
         }
-        return NSClassFromString(type)
+        
     }
     //--------------------------------------------------------------------------
     // MARK: PRIVATE PROPERTY

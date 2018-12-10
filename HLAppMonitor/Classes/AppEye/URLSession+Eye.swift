@@ -9,7 +9,7 @@
 import Foundation
 
 extension URLSession {
-    convenience init(configurationMonitor: URLSessionConfiguration, delegate: URLSessionDelegate?, delegateQueue queue: OperationQueue?) {
+    @objc convenience init(configurationMonitor: URLSessionConfiguration, delegate: URLSessionDelegate?, delegateQueue queue: OperationQueue?) {
         
         if configurationMonitor.protocolClasses != nil {
             configurationMonitor.protocolClasses!.insert(EyeProtocol.classForCoder(), at: 0)
@@ -41,7 +41,7 @@ extension URLSession {
         // let orig = #selector(URLSession.init(configuration:delegate:delegateQueue:))
         // the result is sessionWithConfiguration:delegate:delegateQueue: which runtime can't find it
         
-        let orig = Selector("initWithConfiguration:delegate:delegateQueue:")
+        let orig = Selector(("initWithConfiguration:delegate:delegateQueue:"))
         let alter = #selector(URLSession.init(configurationMonitor:delegate:delegateQueue:))
         let result = URLSession.swizzleInstanceMethod(origSelector: orig, toAlterSelector: alter)
         return result
