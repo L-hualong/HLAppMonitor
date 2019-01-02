@@ -126,18 +126,25 @@ static inline dispatch_queue_t td_log_IO_Producequeue() {
     }
     return self;
 }
+
 #pragma mark - Private
+// 命令行会改这个值
+static NSString *customFilePath = @"1234";
 - (NSString *)createFilePath {
-     return @"/Users/mobileserver/Desktop/performanceData/applog";
-//    static NSString * const kLoggerDatabaseFileName = @"app_logger";
-//    NSString * filePath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingPathComponent: kLoggerDatabaseFileName];
-//    NSFileManager * manager = [NSFileManager defaultManager];
-//    if (![manager fileExistsAtPath: filePath]) {
-//        [manager createDirectoryAtPath: filePath withIntermediateDirectories: YES attributes: nil error: nil];
-//        NSLog(@"path=%@",filePath);
-//    }
-//    return filePath;
+    if ([customFilePath isEqualToString:pathFlag]) {
+        static NSString * const kLoggerDatabaseFileName = @"app_logger";
+        NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingPathComponent: kLoggerDatabaseFileName];
+        NSFileManager * manager = [NSFileManager defaultManager];
+        if (![manager fileExistsAtPath: path]) {
+            [manager createDirectoryAtPath: path withIntermediateDirectories: YES attributes: nil error: nil];
+            NSLog(@"path=%@",path);
+        }
+        return path;
+    }else {
+        return customFilePath;
+    }
 }
+
 static NSString * td_resource_recordDataIntervalTime_callback_key;
 
 //开启监控总开关
@@ -378,8 +385,8 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 }
 // 文件写入操作
 - (void)writeToFileWith:(NSData *)data {
-    NSString * filePath = [self createFilePath];
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
+    NSString *path = [self createFilePath];
+    NSString *fileDicPath = [path stringByAppendingPathComponent:@"appLogIOS.txt"];
     // 4.创建文件对接对象
     NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
     if (handle == nil) {
@@ -449,12 +456,21 @@ static NSString * td_resource_recordDataIntervalTime_callback_key;
 //清空txt文件
 - (void)clearTxt {
     logNum = 1;
-    NSString * filePath = [self createFilePath];
-    NSString *fileDicPath = [filePath stringByAppendingPathComponent:@"appLogIOS.txt"];
-    // 4.创建文件对接对象
-    NSFileHandle *handle = [NSFileHandle fileHandleForUpdatingAtPath:fileDicPath];
-    [handle truncateFileAtOffset:0];
-    
+    NSString * path = [self createFilePath];
+    NSString *fileDicPath = [path stringByAppendingPathComponent:@"appLogIOS.txt"];
+    NSFileManager * manager = [NSFileManager defaultManager];
+    BOOL isExistence = [manager fileExistsAtPath:fileDicPath];
+    if (isExistence) {
+        NSError * error ;
+        BOOL isRemove = [manager removeItemAtPath:fileDicPath error:&error];
+        if (isRemove) {
+            NSLog(@"%@",@"删除成功");
+        }else{
+            NSLog(@"删除失败--error:%@",error);
+        }
+    }else{
+        NSLog(@"文件不存在，请确认路径");
+    }
 }
 //清空缓存
 - (void)clearCache {

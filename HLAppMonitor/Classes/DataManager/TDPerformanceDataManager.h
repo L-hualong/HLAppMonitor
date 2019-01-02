@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
+static NSString *pathFlag = @"filePath";
 //监控指标
 typedef enum _TDMonitoringIndicators
 {
