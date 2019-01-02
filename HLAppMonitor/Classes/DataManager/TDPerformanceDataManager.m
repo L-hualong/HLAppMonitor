@@ -129,7 +129,7 @@ static inline dispatch_queue_t td_log_IO_Producequeue() {
 
 #pragma mark - Private
 // 命令行会改这个值
-static NSString *customFilePath = @"1234";
+static NSString *customFilePath = @"filePath";
 - (NSString *)createFilePath {
     if ([customFilePath isEqualToString:pathFlag]) {
         static NSString * const kLoggerDatabaseFileName = @"app_logger";
