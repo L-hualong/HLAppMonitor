@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'HLAppMonitor'
-  s.version          = '1.10.19'
+  s.version          = '1.10.20'
   s.summary          = 'ios性能监控：HLAppMonitor.'
   s.swift_version    = '4.1'
 # This description is used to generate tags and improve search results.
