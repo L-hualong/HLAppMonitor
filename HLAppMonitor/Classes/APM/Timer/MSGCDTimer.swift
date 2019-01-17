@@ -201,7 +201,7 @@ public class MSGCDTimer: NSObject {
         self.remainingIterations = (mode.countIterations ?? 0)
         self.interval = interval
         self.tolerance = tolerance
-        self.queue = (queue ?? DispatchQueue(label: "com.tuandai.queue"))
+        self.queue = (queue ?? DispatchQueue(label: "com.MSTuandai.queue"))
         super.init()
         self.timer = configureTimer()
         self.observe(observer)
@@ -210,7 +210,7 @@ public class MSGCDTimer: NSObject {
     fileprivate func configureTimer() -> DispatchSourceTimer {
 
         ///创建timer,queue:指定线程
-        let timer = DispatchSource.makeTimerSource(flags: [], queue: (queue ?? DispatchQueue(label: "com.tuandai.queue")))
+        let timer = DispatchSource.makeTimerSource(flags: [], queue: (queue ?? DispatchQueue(label: "com.MSTuandai.queue")))
         let repeatInterval = interval.value
         let deadline: DispatchTime = (DispatchTime.now() + repeatInterval)
         if self.mode.isRepeating {//是否是重复倒计时

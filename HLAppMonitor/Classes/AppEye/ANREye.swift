@@ -26,7 +26,6 @@ import Foundation
                                catchWithThreshold threshold:Double,
                                mainThreadBacktraceList:[[String:String]])
 }
-
 //--------------------------------------------------------------------------
 // MARK: - ANREye
 //--------------------------------------------------------------------------
@@ -49,7 +48,7 @@ import Foundation
     // MARK: OPEN FUNCTION
     //--------------------------------------------------------------------------
     
-   @objc open func open(with threshold:Double) {
+    @objc open func open(with threshold:Double) {
         if Thread.current.isMainThread {
             //mach_thread_self() 获得线程内核端口的发送权限
             AppBacktrace.main_thread_id = mach_thread_self()
@@ -60,83 +59,37 @@ import Foundation
         }
         
         self.pingThread = AppPingThread()
-        self.pingThread?.startRecordingStackInformation(threshold: threshold, handler: { [weak self] in
+        //开始定时器记录
+        self.startTimer(intervalTime: threshold / 2)
+        self.pingThread?.startRecordingStackInformation(threshold: threshold,isCatonHandler: {[weak self] (isCaton) in
+            if isCaton == false {//不卡顿
+                self?.stackInformationArray.removeAll()
+            }
             
-            //开始定时器记录
-            self?.startTimer(intervalTime: threshold / 3)
-            }, isCatonHandler: {[weak self] (isCaton) in
-                if isCaton == false {//不卡顿
-                    self?.pauseTimer()
-                    self?.stackInformationArray.removeAll()
-                }
-                
             }, catonLengthhandler: {[weak self] (startTime, endTime) in
                 guard let strongSelf = self else {
                     return
                 }
-                strongSelf.pauseTimer()
+                
                 let statickList = strongSelf.stackInformationArray
                 var stackLists: [[String: String]] = [[String: String]]()
                 
                 statickList.forEach({ (dict) in
                     stackLists.append(dict)
                 })
-                //print("-----卡---3")
+                //print("-----卡---3"),将代理放在数组所在队列中,保证数据安全性
+                strongSelf.stackInformationArray.safeQueue.async{
+                    strongSelf.delegate?.anrEye?(anrEye: strongSelf, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktraceList: stackLists)
+                }
                 strongSelf.stackInformationArray.removeAll()
-                strongSelf.delegate?.anrEye?(anrEye: strongSelf, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktraceList: stackLists)
         })
-        //        var main: String?
-        //        var all: String?
-        //        self.pingThread?.start(threshold: threshold, handler: { [weak self] in
-        //            
-        ////            guard let sself = self else {
-        ////                return
-        ////            }
-        //            
-        ////            main = AppBacktrace.mainThread() 
-        ////             all = AppBacktrace.allThread()
-        ////            sself.delegate?.anrEye?(anrEye: sself,
-        ////                                    catchWithThreshold: threshold,
-        ////                                    mainThreadBacktrace: main,
-        ////                                    allThreadBacktrace: all)
-        //        }, catonLengthhandler: { [weak self]  (startTime,endTime) in
-        //            guard let strongSelf = self else {
-        //                return
-        //            }
-        //            
-        ////            let main = AppBacktrace.mainThread()
-        ////            let all = AppBacktrace.allThread()
-        ////            sself.delegate?.anrEye?(anrEye: sself, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktrace: main, allThreadBacktrace: all)
-        //            let statickList = strongSelf.stackInformationArray
-        //            strongSelf.stackInformationArray.removeAll()
-        //            strongSelf.delegate?.anrEye?(anrEye: strongSelf, startTime: startTime, endTime: endTime, catchWithThreshold: threshold, mainThreadBacktraceList: statickList)
-        //        })
-        //        self.pingThread?.start(threshold: threshold, handler: { [weak self] in
-        //            guard let sself = self else {
-        //                return
-        //            }
-        //            
-        //            let main = AppBacktrace.mainThread()
-        //            let all = AppBacktrace.allThread()
-        //            sself.delegate?.anrEye?(anrEye: sself,
-        //                                   catchWithThreshold: threshold,
-        //                                   mainThreadBacktrace: main,
-        //                                   allThreadBacktrace: all)
-        //            
-        //        })
+        
     }
     
    @objc open func close() {
         self.pingThread?.cancel()
         stopTimer()
     }
-//    //将回调卡顿数据给外界
-//    fileprivate func callbackCatonStackData(){
-//        
-//        self.stopTimer()
-//        let statickList = self.stackInformationArray
-//        self.stackInformationArray.removeAll()
-//    }
     //--------------------------------------------------------------------------
     // MARK: LIFE CYCLE
     //--------------------------------------------------------------------------
@@ -148,8 +101,6 @@ import Foundation
     private var pingThread: AppPingThread?
     //记录堆栈信息
     private lazy var stackInformationArray:MSSafeArray<[String:String]> = {
-//        var stackArray: [[String:String]] = [[String:String]]()
-//        return stackArray
          var stackArray: MSSafeArray<[String:String]> = MSSafeArray<[String:String]>() 
         return stackArray
     }()
@@ -163,7 +114,7 @@ import Foundation
             })
             timer?.start()
         }else{//定时器不为nil,不用创建
-            //timer?.reset(.seconds(intervalTime))
+           // timer?.reset(.seconds(intervalTime))
             timer?.start()
         }     
     }
@@ -174,7 +125,8 @@ import Foundation
     //关闭定时器
     private func stopTimer(){
         DispatchQueue.main.async {
-            self.timer = nil;
+             self.timer?.pause();
+             self.timer = nil;
         }
     }
     //记录堆栈信息
@@ -185,7 +137,7 @@ import Foundation
         var stackDict:[String:String] = [String:String]()
         stackDict["startTime"] = startTime
         stackDict["stackInformation"] = main1
-        stackInformationArray.append(stackDict)
+        self.stackInformationArray.append(stackDict)
        // print("--------1")
     }
     func currentTime() -> String {
@@ -236,9 +188,8 @@ private class AppPingThread: Thread {
         self.catonLengthhandler = catonLengthhandler
         self.start()
     }
-    //开始记录堆栈信息,isCatonHandler是否卡顿
-    func startRecordingStackInformation(threshold:Double, handler: @escaping AppPingThreadCallBack,isCatonHandler: @escaping AppPingISCatonThreadCallBack, catonLengthhandler:  @escaping AppPingCatonLengthThreadCallBack) {
-        self.handler = handler
+    //开始记录堆栈信息,isCatonHandler是否卡顿 handler: @escaping AppPingThreadCallBack
+    func startRecordingStackInformation(threshold:Double ,isCatonHandler: @escaping AppPingISCatonThreadCallBack, catonLengthhandler:  @escaping AppPingCatonLengthThreadCallBack) {
         self.threshold = threshold
         self.isCatonhandler = isCatonHandler
         self.catonLengthhandler = catonLengthhandler
@@ -252,7 +203,6 @@ private class AppPingThread: Thread {
             //是否卡顿
             var isCaton: Bool = false
             let startTime = self.currentTime()
-            self.handler?()
             DispatchQueue.main.async {
                 self.isMainThreadBlock = false
                 //发送信号量将semaphore的值+1，这个时候其他等待中的线程就会被唤醒执行（同等优先级下随机唤醒）
@@ -261,7 +211,6 @@ private class AppPingThread: Thread {
             Thread.sleep(forTimeInterval:self.threshold )//
             if self.isMainThreadBlock  {
                 isCaton = true
-                 //self.handler?()
             }
             self.isCatonhandler?(isCaton)
             //DispatchTime.distantFuture， 等待信号量 timeout可以控制可等待的最长时间，设置为.distantFuture表示永久等待
@@ -270,10 +219,7 @@ private class AppPingThread: Thread {
             if isCaton {
                 //如果是大于时间间隔就将时间回调出去
                 let endTime = self.currentTime()
-                let catonLengTime = endTime - startTime
-                if catonLengTime >= Int64(self.threshold * 1000) {
-                    self.catonLengthhandler?(startTime,endTime)
-                }
+                 self.catonLengthhandler?(startTime,endTime)
             }
            
         }

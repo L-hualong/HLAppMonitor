@@ -11,6 +11,9 @@ import Foundation
 public class MSSafeArray<Element> {
     fileprivate let queue = DispatchQueue(label: "com.guoxiaoliang.MSSafeArray", attributes: .concurrent)
     fileprivate var array = [Element]()
+    var safeQueue: DispatchQueue {
+        return queue
+    }
 }
 // MARK: - Properties
 public extension MSSafeArray {

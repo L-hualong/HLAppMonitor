@@ -28,30 +28,15 @@ typedef enum _TDMonitoringIndicators
 
 + (instancetype)sharedInstance;
 
-- (void)normalDataStrAppendwith:(NSString*)str;
-
-- (NSString *)getRenderWithClassName:(NSString *)className withRenderTime:(NSString *)renderTime;
-
-- (void)writeToFileWith:(NSData *)data;
-
 //异步获取数据,生命周期方法名
 - (void)asyncExecuteClassName:(NSString *)className withStartTime:(NSString *)startTime withEndTime:(NSString *)endTime withHookMethod:(NSString *)hookMethod withUniqueIdentifier:(NSString *)uniqueIdentifier;
-///**
-// 定时将数据字符串写入沙盒文件
-// 
-// @param intervaTime 上传文件时间间隔,basicTime 基本性能数据获取间隔时间
-// */
-//- (void)startRecordDataIntervalTime: (NSInteger)intervaTime withBasicTime:(NSInteger)basicTime;
+
 //定时将数据字符串写入沙盒文件 兼容之前写main分支代码
 - (void)startToCollectPerformanceData;
-//停止写入监控性能数据
-- (void)stopUploadResourceData;
 //停止监控性能
 - (void)stopAppPerformanceMonitor;
+//清空txt文件缓存
+- (void)clearTxt;
 //改变监控指标状态 Indicators:监控指标,isStartMonitor:监控是否开启与关闭
 - (void)didChangeMonitoringIndicators: (TDMonitoringIndicators)Indicators withChangeStatus:(BOOL)isStartMonitor;
-//清空txt文件
-- (void)clearTxt;
-//写入沙盒
-- (void)writeSandbox;
 @end

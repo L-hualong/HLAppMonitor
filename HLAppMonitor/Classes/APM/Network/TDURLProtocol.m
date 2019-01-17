@@ -81,6 +81,8 @@ static NSString *const TDHTTP = @"GXLHTTP";
 - (void)startLoading {
     NSURLRequest *request = [[self class] canonicalRequestForRequest:self.request];
     self.connection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:YES];
+
+    NSLog(@"request1=%@",self.request);
     self.dm_request = self.request;
     self.startTime = [self getCurrntTime];
 }
@@ -121,6 +123,7 @@ static NSString *const TDHTTP = @"GXLHTTP";
 #pragma mark - NSURLConnectionDataDelegate
 
 -(NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request redirectResponse:(NSURLResponse *)response {
+     NSLog(@"request2=%@----response=%@",request.URL,response.URL);
     if (response != nil) {
         self.dm_response = response;
         [self.client URLProtocol:self wasRedirectedToRequest:request redirectResponse:response];
